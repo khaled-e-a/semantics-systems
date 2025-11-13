@@ -3,7 +3,7 @@
 FSCS Adaptive Random Testing example.
 
 Run from the command line, for example:
-    python fscs_art_example.py --tests 30 --candidates 10 --seed 0
+    python fscs_art_demo.py --tests 30 --candidates 10 --seed 0
 
 Arguments:
     tests: number of test cases to run
