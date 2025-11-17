@@ -1,5 +1,3 @@
-"""Minimal FSCS Adaptive Random Testing demo that drives the OpenAI Responses API."""
-
 import os
 import random
 import string
