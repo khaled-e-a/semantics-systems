@@ -1,0 +1,37 @@
+# VV / UQ / Evals Paper Digest — {{ window_start.isoformat() }} to {{ window_end.isoformat() }}
+
+_Generated {{ generated_at.strftime('%Y-%m-%d %H:%M UTC') }}_
+
+{% if source_errors %}
+> **Note:** the following sources had errors this run, results may be incomplete: {{ source_errors.keys() | join(', ') }}
+{% endif %}
+
+Collected: {% for name, count in collected_per_source.items() %}{{ name }}={{ count }}{% if not loop.last %}, {% endif %}{% endfor +%}
+LLM triage batches: {{ llm_batches_total - llm_batches_failed }}/{{ llm_batches_total }} succeeded
+
+{% if quiet_week %}
+## Quiet week
+
+No papers matched the relevance threshold this week. That's a valid outcome, not an error.
+{% else %}
+## Top papers ({{ top | length }})
+
+{% for s in top %}
+### {{ loop.index }}. [{{ s.triaged.paper.title }}]({{ s.triaged.paper.url }})
+
+- **Authors:** {{ s.triaged.paper.authors[:3] | join(', ') }}{% if s.triaged.paper.authors | length > 3 %}, et al.{% endif +%}
+- **Venue / source:** {{ s.triaged.paper.venue }} ({{ s.triaged.paper.sources | join(', ') }})
+- **Reputation:** max author h-index {{ s.max_author_h_index }}, paper citations {{ s.paper_citation_count }}{% if s.reputation_unmatched %} (unmatched in Semantic Scholar){% endif +%}
+- **Summary:** {{ s.triaged.summary }}
+- **Tags:** {{ s.triaged.tags | join(', ') }}
+
+{% endfor %}
+
+{% if honorable_mentions %}
+## Honorable mentions
+
+{% for s in honorable_mentions %}
+- [{{ s.triaged.paper.title }}]({{ s.triaged.paper.url }}) — {{ s.triaged.paper.venue }}
+{% endfor %}
+{% endif %}
+{% endif %}

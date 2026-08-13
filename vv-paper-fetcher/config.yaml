@@ -1,0 +1,101 @@
+# Tunable settings for the weekly VV/UQ/evals paper fetcher.
+# Nothing here requires a code change to adjust.
+
+sources:
+  arxiv:
+    enabled: true
+    categories: [cs.AI, cs.LG, cs.CL, cs.SE, cs.LO, cs.PL, cs.MA, stat.ML]
+    max_results_per_call: 200
+    max_total_results: 1000
+  hf_papers:
+    enabled: true
+  openreview:
+    enabled: true
+    venues:
+      - id: NeurIPS.cc/2026/Conference
+        api_version: 2
+        label: NeurIPS
+      - id: ICML.cc/2026/Conference
+        api_version: 2
+        label: ICML
+      - id: ICLR.cc/2026/Conference
+        api_version: 2
+        label: ICLR
+  dblp:
+    enabled: true
+    venues:
+      - key: conf/cav
+        label: CAV
+      - key: conf/tacas
+        label: TACAS
+      - key: conf/fm
+        label: FM
+      - key: conf/popl
+        label: POPL
+      - key: conf/cade
+        label: CADE
+      - key: conf/lics
+        label: LICS
+      - key: conf/vmcai
+        label: VMCAI
+
+keyword_filter:
+  min_matches: 1
+  case_sensitive: false
+  skip_for_sources: [dblp]
+  terms:
+    - verification
+    - validation
+    - "uncertainty quantification"
+    - calibration
+    - evals
+    - "evaluation benchmark"
+    - hallucination
+    - "AI agent"
+    - "LLM agent"
+    - "autonomous agent"
+    - "multi-agent"
+    - agentic
+    - "neuro-symbolic"
+    - "symbolic AI"
+    - "formal methods"
+    - "model checking"
+    - "theorem prov"
+    - "scientific AI"
+    - "AI for science"
+    - "AI safety"
+    - "safety evaluation"
+    - trustworthy
+    - robustness
+    - "reward hacking"
+
+llm_triage:
+  batch_size: 12
+  max_abstract_chars: 1200
+  min_relevance_score: 3
+  tag_vocabulary:
+    - verification
+    - uncertainty-quantification
+    - evals
+    - agents
+    - symbolic-ai
+    - formal-methods
+    - scientific-ai
+
+scoring:
+  weights:
+    llm_relevance: 0.4
+    author_h_index: 0.3
+    paper_citations: 0.1
+    hf_upvotes: 0.1
+  caps:
+    hindex_cap: 80
+    citation_cap: 200
+    upvotes_cap: 100
+  venue_tier_bonus:
+    bonus: 0.15
+    top_venues: [NeurIPS, ICML, ICLR, CAV, POPL, TACAS, FM, LICS, ACL, EMNLP]
+
+report:
+  top_n: 20
+  include_honorable_mentions_count: 10

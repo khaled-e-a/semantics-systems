@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<body style="margin:0; padding:0; background-color:#f4f4f5; font-family:Arial, Helvetica, sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5; padding:24px 0;">
+<tr><td align="center">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff; border-radius:8px; overflow:hidden;">
+<tr><td style="background-color:#1f2937; padding:20px 24px;">
+  <span style="color:#ffffff; font-size:18px; font-weight:bold;">VV / UQ / Evals Paper Digest</span><br>
+  <span style="color:#cbd5e1; font-size:13px;">{{ window_start.isoformat() }} to {{ window_end.isoformat() }}</span>
+</td></tr>
+
+{% if source_errors %}
+<tr><td style="padding:12px 24px; background-color:#fef3c7; color:#92400e; font-size:12px;">
+  Note: the following sources had errors this run, results may be incomplete: {{ source_errors.keys() | join(', ') }}
+</td></tr>
+{% endif %}
+
+<tr><td style="padding:20px 24px;">
+{% if quiet_week %}
+  <p style="color:#374151; font-size:14px;">No papers matched the relevance threshold this week. That's a valid outcome, not an error.</p>
+{% else %}
+  {% for s in top %}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:18px; border-bottom:1px solid #e5e7eb; padding-bottom:14px;">
+    <tr><td>
+      <a href="{{ s.triaged.paper.url }}" style="font-size:15px; font-weight:bold; color:#1d4ed8; text-decoration:none;">{{ loop.index }}. {{ s.triaged.paper.title }}</a><br>
+      <span style="font-size:12px; color:#6b7280;">
+        {{ s.triaged.paper.authors[:3] | join(', ') }}{% if s.triaged.paper.authors | length > 3 %}, et al.{% endif %}
+        &middot; {{ s.triaged.paper.venue }}
+        &middot; h-index {{ s.max_author_h_index }}, citations {{ s.paper_citation_count }}
+      </span><br>
+      <span style="font-size:13px; color:#374151;">{{ s.triaged.summary }}</span><br>
+      <span style="font-size:11px; color:#9ca3af;">{{ s.triaged.tags | join(', ') }}</span>
+    </td></tr>
+  </table>
+  {% endfor %}
+
+  {% if honorable_mentions %}
+  <p style="font-size:13px; font-weight:bold; color:#374151; margin-top:20px;">Honorable mentions</p>
+  <ul style="font-size:12px; color:#4b5563; padding-left:18px;">
+    {% for s in honorable_mentions %}
+    <li><a href="{{ s.triaged.paper.url }}" style="color:#1d4ed8;">{{ s.triaged.paper.title }}</a> — {{ s.triaged.paper.venue }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+{% endif %}
+</td></tr>
+
+<tr><td style="padding:14px 24px; background-color:#f9fafb; font-size:11px; color:#9ca3af;">
+  Generated {{ generated_at.strftime('%Y-%m-%d %H:%M UTC') }}
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>
