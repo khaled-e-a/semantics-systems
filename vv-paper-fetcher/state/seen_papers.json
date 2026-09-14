@@ -4405,6 +4405,54 @@
     "arxiv:2609.05401": {
       "first_seen_report_date": "2026-09-07",
       "title": "Same Trajectory, Contradictory Rewards (ROBORMBENCH): Paraphrase Fragility in Vision Language Reward Models"
+    },
+    "arxiv:2609.06931": {
+      "first_seen_report_date": "2026-09-14",
+      "title": "CARDEA: Auditable Reasoning Grounded in Spatial Evidence for End-to-End Coronary Angiography Interpretation"
+    },
+    "arxiv:2609.08126": {
+      "first_seen_report_date": "2026-09-14",
+      "title": "SchemeArena: Factorized Stress Testing of Scheming in LLM Agents"
+    },
+    "arxiv:2609.08418": {
+      "first_seen_report_date": "2026-09-14",
+      "title": "Feyospace-v1: How the Cyber Mercury Seven Trained Frontier Cyber Models"
+    },
+    "arxiv:2609.08572": {
+      "first_seen_report_date": "2026-09-14",
+      "title": "AgentGrad: Intervention-guided Prompt Optimization for Multi Agent Systems"
+    },
+    "arxiv:2609.08965": {
+      "first_seen_report_date": "2026-09-14",
+      "title": "PlannerForge: LLM Agents for Scenario-Based Testing of Motion Planners in Autonomous Driving"
+    },
+    "arxiv:2609.09076": {
+      "first_seen_report_date": "2026-09-14",
+      "title": "ActReview: Rebuttal-Guided Training Data and Rubric Rewards for Actionable Peer Review Generation"
+    },
+    "arxiv:2609.09143": {
+      "first_seen_report_date": "2026-09-14",
+      "title": "Studying Image Tokenizers as Visual Languages in Unified Multimodal Models"
+    },
+    "arxiv:2609.09264": {
+      "first_seen_report_date": "2026-09-14",
+      "title": "StochBench: A Domain-Specific Benchmark for Stochastic Processes in Lean"
+    },
+    "arxiv:2609.10712": {
+      "first_seen_report_date": "2026-09-14",
+      "title": "An Open Recipe for IMO Gold: Training Nemotron for Olympiad Mathematics"
+    },
+    "arxiv:2609.11085": {
+      "first_seen_report_date": "2026-09-14",
+      "title": "Beyond Solver Verdicts: Generative Reward Models for Autoformalization"
+    },
+    "arxiv:2609.11115": {
+      "first_seen_report_date": "2026-09-14",
+      "title": "Benchmark Radar: A Living Database and Search Engine for AI Benchmarks and Evaluation"
+    },
+    "arxiv:2609.13141": {
+      "first_seen_report_date": "2026-09-14",
+      "title": "SAS: Simple Attention Sparsification via End-to-End Optimization of Context Ranking"
     }
   }
 }
