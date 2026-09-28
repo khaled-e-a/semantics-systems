@@ -99,3 +99,10 @@ scoring:
 report:
   top_n: 20
   include_honorable_mentions_count: 10
+
+substack_post:
+  # Style example for the post writer (write_post.py): point this at a post
+  # you've reviewed and approved, relative to vv-paper-fetcher/. If unset, the
+  # newest reports/*-substack-post-ste100.md is used, which soon becomes the
+  # pipeline's own unreviewed output, so the style would drift.
+  style_example: reports/2026-09-07-substack-post-ste100.md
