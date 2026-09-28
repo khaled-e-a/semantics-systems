@@ -1,0 +1,156 @@
+name: Substack Draft Post
+
+on:
+  # Runs right after the weekly digest (weekly-papers.yml) finishes. workflow_run
+  # fires on every completion — success, failure, or cancelled — so the job
+  # below only proceeds when the digest succeeded.
+  workflow_run:
+    workflows: ["Weekly VV/UQ/Evals Paper Digest"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      report_date:
+        description: 'Report date (YYYY-MM-DD). Empty = newest report in reports/.'
+        required: false
+        type: string
+        default: ''
+      force:
+        description: 'Run even if this date already has a draft; UPDATES that draft instead of creating a duplicate.'
+        required: false
+        type: boolean
+        default: false
+      smoke_test:
+        description: 'Only check Substack connectivity (profile, image upload, create + delete a draft). No post, email, or commit.'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+# One run at a time: two overlapping runs could both create a draft for the same date.
+concurrency:
+  group: substack-draft
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: vv-paper-fetcher
+
+jobs:
+  write-draft:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      # ref: main, not the triggering run's SHA — we need the report commit the
+      # digest run just pushed.
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: vv-paper-fetcher/requirements.txt
+
+      - name: Install system libraries
+        # cairosvg (SVG figures -> PNG) needs libcairo.
+        run: sudo apt-get update && sudo apt-get install -y libcairo2
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Start Cloudflare WARP proxy
+        # Substack sits behind Cloudflare, which reportedly blocks GitHub-hosted
+        # runners' datacenter IPs even with a valid cookie. With the repo
+        # variable SUBSTACK_USE_WARP=true, Substack calls go through a local
+        # WARP SOCKS5 proxy instead. Proxy mode (set before connecting) leaves
+        # the runner's other traffic (GitHub, pip, arXiv, OpenRouter) direct;
+        # only the Substack client uses it, via SUBSTACK_PROXY.
+        # If WARP can't connect, the run continues without it: the Substack call
+        # then fails and the email still delivers the post with its figures.
+        if: vars.SUBSTACK_USE_WARP == 'true'
+        continue-on-error: true
+        run: |
+          curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg | sudo gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/cloudflare-client.list
+          sudo apt-get update && sudo apt-get install -y cloudflare-warp
+          # The warp-svc daemon starts with the package; wait until it answers.
+          for i in $(seq 1 30); do sudo warp-cli --accept-tos status >/dev/null 2>&1 && break; sleep 1; done
+          sudo warp-cli --accept-tos registration new
+          sudo warp-cli --accept-tos mode proxy
+          sudo warp-cli --accept-tos proxy port 40000
+          sudo warp-cli --accept-tos connect
+          for i in $(seq 1 30); do
+            if curl -fsS --max-time 5 --socks5-hostname 127.0.0.1:40000 https://www.cloudflare.com/cdn-cgi/trace | grep -Eq '^warp=(on|plus)$'; then
+              echo "WARP proxy connected on 127.0.0.1:40000"
+              echo "SUBSTACK_PROXY=socks5h://127.0.0.1:40000" >> "$GITHUB_ENV"
+              exit 0
+            fi
+            sleep 2
+          done
+          sudo warp-cli --accept-tos status || true
+          echo "::warning::Cloudflare WARP did not connect; continuing without it"
+          exit 1
+
+      # Proxy precedence (both steps below): SUBSTACK_PROXY exported by the WARP
+      # step via $GITHUB_ENV wins; otherwise the SUBSTACK_PROXY secret is used.
+      # The secret is passed as SUBSTACK_PROXY_SECRET so a step-level env: entry
+      # can never shadow the WARP value.
+
+      - name: Substack connectivity smoke test
+        if: inputs.smoke_test
+        env:
+          SUBSTACK_PUBLICATION_URL: ${{ secrets.SUBSTACK_PUBLICATION_URL }}
+          SUBSTACK_COOKIE: ${{ secrets.SUBSTACK_COOKIE }}
+          SUBSTACK_PROXY_SECRET: ${{ secrets.SUBSTACK_PROXY }}
+        run: |
+          if [ -z "${SUBSTACK_PROXY:-}" ] && [ -n "${SUBSTACK_PROXY_SECRET:-}" ]; then
+            export SUBSTACK_PROXY="$SUBSTACK_PROXY_SECRET"
+          fi
+          python -m src.substack_post.substack_client --smoke-test
+
+      - name: Write post and create Substack draft
+        if: ${{ !inputs.smoke_test }}
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_MODEL: ${{ secrets.OPENROUTER_MODEL }}
+          SUBSTACK_WRITER_MODEL: ${{ secrets.SUBSTACK_WRITER_MODEL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          REPORT_EMAIL_TO: ${{ secrets.REPORT_EMAIL_TO }}
+          REPORT_EMAIL_FROM: ${{ secrets.REPORT_EMAIL_FROM }}
+          SUBSTACK_PUBLICATION_URL: ${{ secrets.SUBSTACK_PUBLICATION_URL }}
+          SUBSTACK_COOKIE: ${{ secrets.SUBSTACK_COOKIE }}
+          SUBSTACK_PROXY_SECRET: ${{ secrets.SUBSTACK_PROXY }}
+          # Inputs reach the script through env, never inlined into it (no shell injection).
+          REPORT_DATE: ${{ inputs.report_date }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          if [ -z "${SUBSTACK_PROXY:-}" ] && [ -n "${SUBSTACK_PROXY_SECRET:-}" ]; then
+            export SUBSTACK_PROXY="$SUBSTACK_PROXY_SECRET"
+          fi
+          args=(--verbose)
+          if [ -n "${REPORT_DATE:-}" ]; then args+=(--date "$REPORT_DATE"); fi
+          if [ "${FORCE:-false}" = "true" ]; then args+=(--force); fi
+          python write_post.py "${args[@]}"
+
+      - name: Commit post and draft state
+        # !cancelled(): also runs after a failed write step, which may still have
+        # written the post file (write_post.py exits 1 after an unexpected Substack
+        # error, once the post is saved and emailed). Figures are never committed.
+        if: ${{ !cancelled() && !inputs.smoke_test }}
+        env:
+          REPORT_DATE: ${{ inputs.report_date }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -- reports/*-substack-post-ste100.md
+          if [ -f state/substack_drafts.json ]; then git add -- state/substack_drafts.json; fi
+          git diff --cached --quiet && echo "No changes to commit" && exit 0
+          post_date=$(git diff --cached --name-only -- reports | sed -n 's|^.*/\([0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}\)-substack-post-ste100\.md$|\1|p' | head -n 1)
+          post_date="${post_date:-${REPORT_DATE:-$(date -u +%Y-%m-%d)}}"
+          git commit -m "chore: substack draft post ($post_date)"
+          git pull --rebase
+          git push

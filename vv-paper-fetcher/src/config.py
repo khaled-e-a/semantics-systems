@@ -4,7 +4,7 @@ from __future__ import annotations
 import os
 import sys
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Iterable
 
 import yaml
 from dotenv import load_dotenv
@@ -48,5 +48,27 @@ def load_env(dry_run: bool = False) -> Dict[str, str]:
     env = {v: os.environ[v] for v in required}
     for v in OPTIONAL_ENV_VARS + ["RESEND_API_KEY", "REPORT_EMAIL_TO", "REPORT_EMAIL_FROM"]:
         if os.environ.get(v):
+            env[v] = os.environ[v]
+    return env
+
+
+def load_env_vars(required: Iterable[str], optional: Iterable[str] = ()) -> Dict[str, str]:
+    """Generic form of load_env() for other entrypoints (e.g. write_post.py).
+
+    Loads .env, fails fast (before any network calls) if any ``required`` var is
+    missing or empty, and includes each ``optional`` var only when it is set.
+    """
+    load_dotenv(PROJECT_ROOT / ".env")
+
+    required = list(required)
+    missing = [v for v in required if not os.environ.get(v)]
+    if missing:
+        print(f"Missing required environment variables: {', '.join(missing)}", file=sys.stderr)
+        print("Copy .env.example to .env and fill them in.", file=sys.stderr)
+        sys.exit(1)
+
+    env = {v: os.environ[v] for v in required}
+    for v in optional:
+        if v not in env and os.environ.get(v):
             env[v] = os.environ[v]
     return env
