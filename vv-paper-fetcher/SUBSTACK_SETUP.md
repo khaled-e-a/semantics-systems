@@ -31,8 +31,9 @@ signing out makes the cookie invalid.
 
 ### 3. Note when the cookie expires
 
-1. In the same DevTools window, open **Application → Cookies →
-   https://substack.com**.
+1. In the same DevTools window, open **Application → Cookies**, then click
+   the `https://<name>.substack.com` entry (or `https://substack.com` if it
+   is listed).
 2. Find `substack.sid` (or `connect.sid`) and read the **Expires** column.
 3. Put a calendar reminder a few days before that date to do step 2 again.
 
