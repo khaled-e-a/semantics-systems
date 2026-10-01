@@ -56,6 +56,8 @@ report from whatever succeeded. A week with zero relevant papers is a valid
 
 ## Substack draft post
 
+**First-time setup:** follow the checklist in [SUBSTACK_SETUP.md](SUBSTACK_SETUP.md).
+
 `write_post.py` turns the week's report into a Substack post that follows
 `WRITING_SUBSTACK_POST.md` (strict VV/UQ filter, ASD-STE100 English, exact
 links, no author names), puts each kept paper's main figure (with a credit
