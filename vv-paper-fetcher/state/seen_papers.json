@@ -6197,6 +6197,898 @@
     "arxiv:2609.31603": {
       "first_seen_report_date": "2026-09-28",
       "title": "User Model Extraction via Belief Self-Distillation"
+    },
+    "arxiv:2609.36388": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Persona Dosing: Calibrated Activation Steering for Graded Trait Control"
+    },
+    "arxiv:2609.39050": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Covert Assistance: Helpful LLM Agents Evade Oversight in Multi-Agent Systems"
+    },
+    "arxiv:2610.00531": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Science or Slop?: Benchmarking and Mitigating Scientific Slop in AI-Generated Papers"
+    },
+    "arxiv:2610.00850": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "AuraForge: Scaling Security Supervision for Training Coding Agents"
+    },
+    "arxiv:2610.00858": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Fixing a Model That Learned Worse Cancer Means Lower Risk: Monotonic Constraints in Bladder Cancer Recurrence Prediction"
+    },
+    "arxiv:2610.00873": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Rethinking Data Augmentation under Covariate Shift: Invariant-Guided Diffusion and Prototype Reweighting"
+    },
+    "arxiv:2610.00883": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "DeBERTa-ConPara: Attack-Aware and Deployment-Realistic Detection of AI-Generated Text"
+    },
+    "arxiv:2610.00885": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "FORALL-LEAN-AGENT for Auditable Reasoning in Formal Mathematics and Software Verification"
+    },
+    "arxiv:2610.00888": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Match the Distribution, Not the Compute: Post-Training Multi-Token Prediction Heads"
+    },
+    "arxiv:2610.00889": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "HakiCC: LLM-Driven Multi-Agent Design and Optimization of Concurrency Control Protocols"
+    },
+    "arxiv:2610.00890": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Cross-Benchmark Transfer from RL on Agentic Coding Tasks"
+    },
+    "arxiv:2610.00902": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Mean field games as a tool for AI safety: a worked example from the July 2026 Hugging Face incident"
+    },
+    "arxiv:2610.00905": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Understanding Issues, Causes and Solutions in Open-Source LLM-based Multi-Agent Systems"
+    },
+    "arxiv:2610.00906": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "ActiveSaddler: Automated Curriculum Learning for Agent Harness Optimization"
+    },
+    "arxiv:2610.00948": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "GUI-HARVEST: Self-Improving GUI Agents through Evidence-Driven Harness Evolution"
+    },
+    "arxiv:2610.00954": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Beyond Leaderboards: Tokenomics of Agentic Small Language Model Ensembles"
+    },
+    "arxiv:2610.00961": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Cybernetic and Epistemic: A Missing Vocabulary for Trustworthy Agentic Delegation"
+    },
+    "arxiv:2610.00969": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "A Citation-Grounded Benchmark for Trustworthy Earnings Call Transcript Analysis with Large Language Models"
+    },
+    "arxiv:2610.00972": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "VeriHarness: Scaling Agentic Verification for Long-Horizon Tasks"
+    },
+    "arxiv:2610.00977": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "ABSENTIA: Detecting Broken Access Control Vulnerabilities in Web Applications"
+    },
+    "arxiv:2610.00979": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "RISED: RubrIcs for agentic multi-environment Selection and sElf-Distillation"
+    },
+    "arxiv:2610.00980": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Can AI Scientists Coordinate at Runtime?"
+    },
+    "arxiv:2610.00993": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "The Price of Correlated Tests: How Strict Should a Model Release Gate Be?"
+    },
+    "arxiv:2610.00997": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Distilling Directional Verification"
+    },
+    "arxiv:2610.01000": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Evaluating LLM-Generated Preference Distributions"
+    },
+    "arxiv:2610.01001": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Calibration-risk routing for controlled world-model adaptation"
+    },
+    "arxiv:2610.01005": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Tolerance-Based Fairness Auditing: Violation Certification and Sensitivity Screening"
+    },
+    "arxiv:2610.01006": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Beyond Answer Confidence: A Controlled Audit of Self-Knowledge in a Black-Box Decision Model"
+    },
+    "arxiv:2610.01017": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Pay for the Fault, Not the Flow: Label-Free In-Flow Multi-Agent Workflow Optimization"
+    },
+    "arxiv:2610.01026": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "It Takes Workflows to Evolve Better Workflows"
+    },
+    "arxiv:2610.01027": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "LawCompass: Navigating from Legal QA to Multi-Agent Deep Research with Grounded Evidence"
+    },
+    "arxiv:2610.01042": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Beyond Final Accuracy: Auditing Communication in LLM Multi-Agent Systems"
+    },
+    "arxiv:2610.01073": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Safety Must Survive Self-Improvement: Why Failures Persist and How Agents Recover"
+    },
+    "arxiv:2610.01093": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "OrbitTAMP: Grounding Language Models for Task and Motion Planning in Spacecraft Rendezvous"
+    },
+    "arxiv:2610.01096": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Dataset Identity, Not Novelty: The Source of an Inflated OOD Detection Gain"
+    },
+    "arxiv:2610.01097": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "YouRA: A Persistent-State Architecture for Evidence-Traceable Autonomous Research Agents"
+    },
+    "arxiv:2610.01110": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "How Much Can Language Models Gain from Test-Time Computation?"
+    },
+    "arxiv:2610.01119": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "AbsorbEvo: An Agentic Framework for Autonomous Inverse Design of Microwave Absorbers"
+    },
+    "arxiv:2610.01138": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Auditing Action Settlement in LLM Agent Environments: Order, Progress, and Replay"
+    },
+    "arxiv:2610.01203": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "CompProv Produces Machine Readable Graphs Encoding Microscopic Algebraic Provenance for Reproducible Computation"
+    },
+    "arxiv:2610.01241": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Evaluating the Robustness of Japanese LLMs to IME-Related and Typographical Errors"
+    },
+    "arxiv:2610.01244": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Right Answers, Wrong States: Hidden Information Failures in Multi-Agent Collaboration"
+    },
+    "arxiv:2610.01249": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Revision-Aware Independent Agent Graphs for Dynamic Reasoning"
+    },
+    "arxiv:2610.01256": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "DeFA: Dependency-Guided Failure Attribution for LLM Agents"
+    },
+    "arxiv:2610.01282": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Trustworthy Data- and ML-Ops for Intelligent Transportation Systems and Logistics"
+    },
+    "arxiv:2610.01284": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Model validation in machine learning: A scenario-based guide from hold-out splits to nested group cross-validation in biomedical and applied research"
+    },
+    "arxiv:2610.01306": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "DAYJOB: A Benchmark for Long-Horizon Professional Work"
+    },
+    "arxiv:2610.01345": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "ARCCS: An Automated Regulatory Compliance Checking System"
+    },
+    "arxiv:2610.01348": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Verify Claims, Not Scores: Evidence-Based Verification of Modular Agents"
+    },
+    "arxiv:2610.01349": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "PACE: Provenance-Aware Capability Enforcement for Tool-Using LLM Agents"
+    },
+    "arxiv:2610.01364": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "LLM-Driven Multi-Agent Control for Skill-Based Smart Manufacturing"
+    },
+    "arxiv:2610.01384": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Robust Evidential Learning Through Latent Consistency"
+    },
+    "arxiv:2610.01393": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "LLM-Assisted Discovery of Typed Semantic Links for Ontology Network Construction"
+    },
+    "arxiv:2610.01415": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Beyond Memory: Harnessing Long-Horizon Agents with Explicit Belief States"
+    },
+    "arxiv:2610.01425": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Why Does Train-Validation Separation Emerge? Update-Pressure Density Dynamics in Pretrained Backbones"
+    },
+    "arxiv:2610.01428": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Generalization Is Stability, Not Accuracy: Multi-Axis Evaluation of LLMs"
+    },
+    "arxiv:2610.01436": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "A Deterministic and Auditable AI Security Risk Assessment Framework with ATLAS Aligned Executable Rules and Formal Verification"
+    },
+    "arxiv:2610.01451": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "A Multi-Agent LLM Framework for Personalized Health Checkup Interpretation and Guidance"
+    },
+    "arxiv:2610.01471": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "When Does a Second Model Help? Cross-Model Review in LLM Verification"
+    },
+    "arxiv:2610.01490": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "The Persona Is Still There, but Who Is Speaking? Latent Identity Reversion in Persistent AI Agents"
+    },
+    "arxiv:2610.01491": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Auditing Web Agent Evaluation on WebArena-Lite: Human Review of Outcomes and Trajectories"
+    },
+    "arxiv:2610.01495": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Auditing Routing Entropy as an Uncertainty Signal in Attention-Residual Transformers"
+    },
+    "arxiv:2610.01497": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "OpenMTB-Audit: Exposing Over-Refusal and Clinical Expert Perspectives in LLM-Based Molecular Tumor Board Safety Evaluation"
+    },
+    "arxiv:2610.01508": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "OverAct: Measuring and Mitigating Proactive Over-Authorization in LLM Tool-Calling Agents"
+    },
+    "arxiv:2610.01509": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Sharpening Tax in Post-Training"
+    },
+    "arxiv:2610.01514": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "How the Audit Rule Shapes Faithful Factor Explanations in LLMs"
+    },
+    "arxiv:2610.01519": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Auto-Formalizing Neuro-Symbolic Predictors"
+    },
+    "arxiv:2610.01531": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Towards Reliable Vision-Language Models for Autonomous Driving"
+    },
+    "arxiv:2610.01564": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Chaining Skills to Hijack LLM Agents"
+    },
+    "arxiv:2610.01569": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Managing Context and Communication in Distributed Agentic UAV Swarms"
+    },
+    "arxiv:2610.01581": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Evaluating Physical Consistency and Plausibility in Generative Scenario Models for Autonomous Driving"
+    },
+    "arxiv:2610.01618": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Agents Are Systems, Not Models: Rethinking Agentic Evaluation"
+    },
+    "arxiv:2610.01652": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Iterative Policy Refinement through Semantic Rollout Analysis"
+    },
+    "arxiv:2610.01670": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Do MLLM Judges Judge the Edit? Auditing Bias in Image Editing Evaluation with Verified Quality Preservation"
+    },
+    "arxiv:2610.01729": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Function-Structured Reinforcement Learning with Executable Verifiers for Mathematical Reasoning"
+    },
+    "arxiv:2610.01756": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "SoK: Decentralized Agent Economic Infrastructure"
+    },
+    "arxiv:2610.01766": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "VideoEvolve: Evolving Agent Harnesses for Video Temporal Grounding"
+    },
+    "arxiv:2610.01781": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Q-Learning for Reachability in MEC-Free MDPs"
+    },
+    "arxiv:2610.01788": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "SAGE: Similarity-Based Cleaning of Poisoned Training Data from Verified Examples"
+    },
+    "arxiv:2610.01799": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "SkillEvoLean: Mutation-enhanced skill evolution for Lean provers"
+    },
+    "arxiv:2610.01800": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "LineupRL: Verifiable Reinforcement Learning for Time Series Captioning via Caption-to-Series Identification"
+    },
+    "arxiv:2610.01801": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "A Safe Prototype Is Not a Safety Direction: Reference Dependence and Prompt Confounds in Response-Safety Embeddings"
+    },
+    "arxiv:2610.01827": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Scientific Discovery under Validation Congestion via Multi-Fidelity Pairwise Rankings"
+    },
+    "arxiv:2610.01833": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Continuous Process-Level Evaluation for Evolving Enterprise AI Agent Skills"
+    },
+    "arxiv:2610.01846": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Beyond Decodability: Do Acoustic Factors Drive Predictions in Speech-Based Alzheimer's Assessment?"
+    },
+    "arxiv:2610.01871": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Walking the Embedding Space: Datastore Extraction from Multimodal RAG"
+    },
+    "arxiv:2610.01887": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "TRACE: Tackling Real-World Resource Assignment Problems via Agentic Heuristic Design"
+    },
+    "arxiv:2610.01955": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Do Your Own Research: Learning to Forecast by Learning to Search"
+    },
+    "arxiv:2610.01959": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Training-Free Diffusion Planning with Analytical Local Scores"
+    },
+    "arxiv:2610.01995": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Can AI Oversight Be Zero Knowledge?"
+    },
+    "arxiv:2610.02002": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Mem++: Non-Destructive Memory for Long-Term Organizational LLM Agents"
+    },
+    "arxiv:2610.02005": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Counting Moves, Weighing Voices: Bayesian Dialectical Argumentation for Calibrated Multi-LLM Councils under Persistent Adversaries"
+    },
+    "arxiv:2610.02010": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Exploring Weaknesses of Generative Image Watermarks against Latent Frequency Masking"
+    },
+    "arxiv:2610.02036": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Global Coherence: When Every Agent Is Right and the Team Is Still Wrong - A Local-to-Global Semantic Foundation for Multi-Agent Collaboration"
+    },
+    "arxiv:2610.02038": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Mimir: Physics-Grounded LLM Agents for Long-Horizon Irrigation Control"
+    },
+    "arxiv:2610.02066": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "External Observers May See More Clearly: Cross-Model Span-Level Hallucination Detection in Large Language Models via Hidden State Probing"
+    },
+    "arxiv:2610.02098": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Are We Recovering Mechanisms? Objective-Level Recovery Gaps in Mechanistic Interpretability"
+    },
+    "arxiv:2610.02136": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "MIRTO: a registration-gated, multiverse-tested evaluation protocol for unsupervised anomaly segmentation in brain MRI"
+    },
+    "arxiv:2610.02206": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "KaliBench: A Fine-Grained Benchmark for Cybersecurity Tool Use on Kali Linux with Runtime-Free Verifiable Rewards"
+    },
+    "arxiv:2610.02267": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Fast Models, Slow Evidence: A Paired and Self-Audited Evaluation of System-1 Decision Models for LLM Agent Harnesses"
+    },
+    "arxiv:2610.02268": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "From Mathematical to Executable Certificates for Machine Unlearning"
+    },
+    "arxiv:2610.02293": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "HakemBench: A Turkish Benchmark of Typed Decisions"
+    },
+    "arxiv:2610.02298": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "EditHero: A Benchmark for Long-Horizon Part-Level 3D Editing and Vibe Modeling"
+    },
+    "arxiv:2610.02303": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "PowerBench: Measuring Language Model Bias in Power-shifting Requests"
+    },
+    "arxiv:2610.02304": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "SimuVerity: Benchmarking Agents for Engineering-Grade Simulink Model Generation"
+    },
+    "arxiv:2610.02349": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "MIRROR: Multipath Quorum Integrity for LLM Multi-Agent Communication"
+    },
+    "arxiv:2610.02351": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "DeReAct: Decomposed Reasoning and Acting for Reliable AI Agents"
+    },
+    "arxiv:2610.02357": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Conformal Prediction for Time Series with Deep Sequence Models"
+    },
+    "arxiv:2610.02373": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Hop-Decayed Influence: New Vulnerabilities of Structural Auxiliary Indexing in GraphRAG Pipelines with LLM"
+    },
+    "arxiv:2610.02376": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Coco: An Agentic Copilot for the Hardware--Software Co-Design Lifecycle"
+    },
+    "arxiv:2610.02396": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Inherit-MAS: Test-Time Evolution of Multi-Agent Systems through Workflow and Execution Inheritance"
+    },
+    "arxiv:2610.02397": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Validated Data Onboarding for AI Demand Forecasting on U.S. Building Meter Data: Design, Controlled Evaluation, and a Corrected Negative Result"
+    },
+    "arxiv:2610.02399": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "VisAudit: Evaluating Multimodal Agents for Visual Diagnosis and Repair"
+    },
+    "arxiv:2610.02405": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "When Terminal-Agent Training Stalls: Demystifying Data Generation and Verification Challenge"
+    },
+    "arxiv:2610.02413": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Prompted to Discriminate: Generalizing Malicious-Input Probes in the Wild"
+    },
+    "arxiv:2610.02417": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "The AI Theorist reveals excitonic structure in $\u03b1$-RuCl$_3$"
+    },
+    "arxiv:2610.02425": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Finding the Move Is Not Winning the Game: XiangqiBench for Closed-Loop Evaluation of LLM Agents"
+    },
+    "arxiv:2610.02432": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Evaluating and Improving the Robustness of Large Language Models to Input Sequence Variations"
+    },
+    "arxiv:2610.02438": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Are you Synthesizing or Recalling? Evaluating LLMs on Algorithmic Code Retrieval"
+    },
+    "arxiv:2610.02444": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Counterexample Generation via Per-Theorem Symbolic Verifiers: When Imitation Hurts and Reinforcement Repairs"
+    },
+    "arxiv:2610.02449": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Proof Interfaces for Exploratory Mathematics"
+    },
+    "arxiv:2610.02460": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "CUEing User Simulators: Calibrated User Embeddings for Multi-Turn Benchmarking"
+    },
+    "arxiv:2610.02478": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Tropical Reinforcement Learning"
+    },
+    "arxiv:2610.02480": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "MEA: A Reward-Driven Multi-Agent System for Faithful Model Explanations"
+    },
+    "arxiv:2610.02487": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Threshold-Aware Conformal Routing"
+    },
+    "arxiv:2610.02488": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Harnessing LLMs as Agents: What Does It Cost?"
+    },
+    "arxiv:2610.02492": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Right Order, Wrong Scale: Auditing LLM Judges for Occupational AI Measurement"
+    },
+    "arxiv:2610.02523": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Hypothesis-guided discovery of cognitive algorithms via program refinement"
+    },
+    "arxiv:2610.02525": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Learning What to Investigate Next: Meta-Reasoning for Long-Horizon Research Agents"
+    },
+    "arxiv:2610.02542": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "How To Train Your World Model: Fine-tuning vs RAG for LM-based World Modeling"
+    },
+    "arxiv:2610.02563": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "OpenGameEval: Benchmarking Agentic Programming and Exploration in a Stateful Game Engine"
+    },
+    "arxiv:2610.02564": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Learning Closure of Dynamical Systems with Kernel Ridge Regression"
+    },
+    "arxiv:2610.02588": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Open-Endedness Bench: Measuring Epistemic Process from Agent Records"
+    },
+    "arxiv:2610.02608": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Time Series Forecasting Benchmarks Need Scenario-Grounded Stress Testing"
+    },
+    "arxiv:2610.02611": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Scale-Recursive Rectified Flows for Few-Step Precipitation Ensembles"
+    },
+    "arxiv:2610.02616": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "VERSE: Verified Self-Evolving Optimizer for Agent Harnesses"
+    },
+    "arxiv:2610.02627": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Lost in the Request: How Communication Variation Disrupts Retrieval and Action in Email Agents"
+    },
+    "arxiv:2610.02632": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Online Verification of Language Model Responses Under Cost Constraints"
+    },
+    "arxiv:2610.02641": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "When Normalization Selects the Sign: Auditing Robustness Ablations in Quantum Attention"
+    },
+    "arxiv:2610.02654": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Coherence-Driven Belief Formation and Population Dynamics of Contagion in LLM Agents"
+    },
+    "arxiv:2610.02662": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Mind the Refinement Gap: When Safe High-Level Robot Plans Produce Unsafe Executions"
+    },
+    "arxiv:2610.02670": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "LEAP: Learning Efficient Action Proposals For LLM Agents"
+    },
+    "arxiv:2610.02695": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Test-time Calibration Learning for Large Language Model Reasoning"
+    },
+    "arxiv:2610.02702": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Silent Dissent: LLM Agents That Yield to the Majority Still Represent Their Original Premise"
+    },
+    "arxiv:2610.02710": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Self-Supervised Scaling of Terminal Environments for Scientific Domains"
+    },
+    "arxiv:2610.02739": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Beyond Correctness: Resolving Underspecification in Agentic Text-to-SQL"
+    },
+    "arxiv:2610.02740": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Prospective Hindsight: Self-Calibrating Reinforcement Learning via Prediction-Reality Gaps"
+    },
+    "arxiv:2610.02741": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "On the Chain-of-Thought Monitorability of Looped Language Models"
+    },
+    "arxiv:2610.02765": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Localized Conformal Safety Monitoring with Vision-Language Models for Autonomous Driving"
+    },
+    "arxiv:2610.02769": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "When History Fails to Become Experience: Action Calibration in Language Agents"
+    },
+    "arxiv:2610.02770": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "AptMQL-Bench: From Text-to-SQL to Text-to-MQL via Access-Pattern Schema Design and Data-Preserving Migration"
+    },
+    "arxiv:2610.02788": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Skill2Real: Agentic Skill Learning for Zero-Shot Sim-to-Real Robot Manipulation"
+    },
+    "arxiv:2610.02792": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Law And Order: Tax Law Autoformalization"
+    },
+    "arxiv:2610.02801": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "VIGOR: Zero-Shot Visual Generalization via Latent-Space Consistency in Model-Based Reinforcement Learning"
+    },
+    "arxiv:2610.02814": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "VeriPy Source-Preserving Verification and Compatibility Checking for Python Components"
+    },
+    "arxiv:2610.02817": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "RMCW: A Deletion-Robust Watermark Based on Reed--Muller Codes for Language Models"
+    },
+    "arxiv:2610.02827": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "MLCommons Jailbreak Benchmark v1.0"
+    },
+    "arxiv:2610.02828": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "FSPO: Policy-Consistent Risk and Pareto-Feasible Control for Budgeted LLM RL Post-Training"
+    },
+    "arxiv:2610.02841": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "How Robust Is Multimodal Claim Verification to LLM Rewriting?"
+    },
+    "arxiv:2610.02847": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Turnover-Orthogonal Credit Assignment for Open-Team Multi-Agent Reinforcement Learning"
+    },
+    "arxiv:2610.02848": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Permutation Robustness Is Not Enough: Action Collapse in Multi-Agent Transformer Policies"
+    },
+    "arxiv:2610.02853": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Bounded Reachability & Jailbreak Detection via Contraction-Constrained State Space Models"
+    },
+    "arxiv:2610.02887": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Revealing Epistemic Uncertainty in MLLMs via Causal-Invariant Masking"
+    },
+    "arxiv:2610.02894": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "When Can We Trust the Matching Principle? Robust Deployment Geometry Under Finite-Sample and Model Uncertainty"
+    },
+    "arxiv:2610.02902": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "LUMOS: Tracing Parametric Knowledge from Training Data to Behavioral Outputs in LLMs"
+    },
+    "arxiv:2610.02920": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "HASTE: Evolving Agent Harnesses Against Emerging Attacks Using Sparse Evidence"
+    },
+    "arxiv:2610.02924": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Evaluator-in-the-Loop Monte Carlo Tree Search via LLM Agents for Motif Scaffolding in Protein Design"
+    },
+    "arxiv:2610.02925": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Positive-Unlabeled Learning for Agent Safety False Alarm Auditing"
+    },
+    "arxiv:2610.02926": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Output Language Confusion under Multilingual Prompt Contamination"
+    },
+    "arxiv:2610.02928": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Discriminating Fixture Coverage in Agent-Infrastructure Verification Suites"
+    },
+    "arxiv:2610.02944": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Cross-Fitting Under Nonregularity: Normality and Inference via Locality"
+    },
+    "arxiv:2610.02968": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Reasoning with Evidence, Not Merely Rationales: Verifiable Preference Proofs for LLM-Based Recommendation"
+    },
+    "arxiv:2610.02975": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Reliable Self-Evolution with Imperfect Proxy Rewards"
+    },
+    "arxiv:2610.02982": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "PLCWorld: Benchmarking LLM-Generated PLC Programs in Closed-Loop Plant Simulation"
+    },
+    "arxiv:2610.02986": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "OLMo-Detect: A Multi-Stage, Confounder-Controlled Benchmark for Membership Inference on Large Language Models"
+    },
+    "arxiv:2610.02994": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Sentry: Learning to Recover from LLM Agent Failures at Test Time"
+    },
+    "arxiv:2610.02999": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "OmniConfess: Eliciting Token Confessions to Mitigate Omni-Modal Hallucination"
+    },
+    "arxiv:2610.03010": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Engineering Sustainable Agents: A Systematic Comparison of Agentic LLMs for Developer Workflows"
+    },
+    "arxiv:2610.03014": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Beyond Predefined Sinks: Security-Aware Dependency Analysis for LLM Agents"
+    },
+    "arxiv:2610.03025": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Verifiable, Articulable, and Tacit Components of Preference"
+    },
+    "arxiv:2610.03033": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "When Numbers Start Talking: Numerical Signalling and Strategic Behaviour Among LLMs"
+    },
+    "arxiv:2610.03055": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "hacktrace: behavior-supervised detection of reward hacking during code generation"
+    },
+    "arxiv:2610.03056": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "MOF-VERIFY: A Failure-Aware Agentic Harness for MOF Hypothesis Verification"
+    },
+    "arxiv:2610.03063": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "HARPO: Hallucination-Aware Reinforcement Learning for Faithful and Creative Language Generation"
+    },
+    "arxiv:2610.03095": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Peer Influence across Heterogeneous AI Models"
+    },
+    "arxiv:2610.03099": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Beyond Single Videos: Benchmarking and Active Evidence Seeking for E-Commerce Cross-Video Reasoning"
+    },
+    "arxiv:2610.03102": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Ask, Relax, or Act? Evaluating Actionable Indeterminacy in LLM Preference Reasoning"
+    },
+    "arxiv:2610.03110": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Ontological Instability and Statistical Amplification: The Paradox of \"Humanizing\" LLM-Generated Text"
+    },
+    "arxiv:2610.03124": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "The Fragility of Trigger-Tag Mechanisms for Misuse Detection in Open-Weight LLMs"
+    },
+    "arxiv:2610.03127": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Coverage You Can Steer: Online Conformal Calibration for RL-Driven Hardware-Aware NAS"
+    },
+    "arxiv:2610.03136": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Investigating the Role of Reasoning-Language Alignment in Monolingual Retrieval-Augmented Generation"
+    },
+    "arxiv:2610.03185": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Gains and Collapse in On-Policy Distillation:A Reinforcement Learning Perspective"
+    },
+    "arxiv:2610.03195": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Source Preference in the Wild: How LLM Agents Favor Items by Source, and How to Reduce It"
+    },
+    "arxiv:2610.03213": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Toward SLM-based agentic task-tool intent matching"
+    },
+    "arxiv:2610.03223": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "AdaStep: Adaptive Step Credit Weighting for Agentic Reinforcement Learning"
+    },
+    "arxiv:2610.03226": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "D2K-Bench: Can LLM Agents Turn Expert Designs into Efficient GPU Kernels?"
+    },
+    "arxiv:2610.03296": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "JOVE: Joint Execution and Verification for Resource-Aware LLM Task Graphs"
+    },
+    "arxiv:2610.03303": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "S$^{2}$-PINN: Stochastic Separable Physics-Informed Neural Networks"
+    },
+    "arxiv:2610.03315": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Lightweight, Rubric-Guided Trajectory Evaluation for Production AI Agents"
+    },
+    "arxiv:2610.03319": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Defense-in-Depth at the Perception-Reasoning Interface of LLM-Centric Agentic UAV Swarms"
+    },
+    "arxiv:2610.03321": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Information Limits of Low-Rank Approximation Certification"
+    },
+    "arxiv:2610.03326": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Preserving Mathematical Reasoning in Compressed Diffusion Language Models via Trajectory-Aware Low-Rank Approximation"
+    },
+    "arxiv:2610.03345": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Symbolic Execution of Constrained Horn Clauses"
+    },
+    "arxiv:2610.03387": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Benchmarking Candidate Coverage in Typed Decision Models"
+    },
+    "arxiv:2610.03444": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Electronic Density versus Geometry for Machine-Learned Molecular Absorption Spectra"
+    },
+    "arxiv:2610.03445": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Corrupted but Correct: Why Vision-Language Models Lie to Themselves Internally"
+    },
+    "arxiv:2610.03448": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Passing the Test You Trained On: Re-evaluating Prompt-Injection Detectors for LLM Agents"
+    },
+    "arxiv:2610.03456": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Beyond Random Splits: Evaluating Drug-Target Affinity Models Under Chemically and Biologically Motivated Distribution Shifts Copy"
+    },
+    "arxiv:2610.03458": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "A Near-Zero Monitor Readout Is Not Evidence of Behavioral Control"
+    },
+    "arxiv:2610.03465": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "When Is Accuracy Evidence? A Unified Theory of Generalisation, Validation, and Information Fusion"
+    },
+    "arxiv:2610.03476": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "MobiAgent: Dual-Loop Recursive Policy Self-Improvement for Long-Horizon Mobile Manipulation"
+    },
+    "arxiv:2610.03482": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Single-Pass Uncertainty Heads for Claim-Level Hallucination Detection in Persian Medical Language Models"
+    },
+    "arxiv:2610.03498": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Detect and Suppress: A Mechanistic Defense against Adversarial Patches in VLA Models"
+    },
+    "arxiv:2610.03502": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Certified Mechanistic Edits: Behavioral Guarantees for Skill Removal and Preservation"
+    },
+    "arxiv:2610.03548": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Recursive Harness Self-Improvement for Frontier Reasoning Data Synthesis"
+    },
+    "arxiv:2610.03564": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Knowledge or Calculator? Decomposing the Skill Premium in Verifiable Financial Agent Workflows"
+    },
+    "arxiv:2610.03565": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Writerslogic at PAN 2026: Process over Content for Robust Detection under Domain Shift"
+    },
+    "arxiv:2610.03585": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Threat-Preserving Representation Sensitivity in Agent-Security Benchmarks"
+    },
+    "arxiv:2610.03591": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "HazardWeaver: Scientific Route Selection for Hazard Analysis Agents"
+    },
+    "arxiv:2610.03598": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "When a Correct Reward Is Not Enough: Diagnosing and Guiding PPO in an Analytically Solved Broker-Trader Game"
+    },
+    "arxiv:2610.03631": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "NeutronGym: Physics-Graded Neutron Instrument Design for LLM Agents"
+    },
+    "arxiv:2610.03650": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "PoCoFL: POlicy-COmpliant Federated Learning"
+    },
+    "arxiv:2610.03662": {
+      "first_seen_report_date": "2026-10-05",
+      "title": "Forecasting from Counterfactual Simulator Rollouts: A Sim2Real Evaluation"
     }
   }
 }
