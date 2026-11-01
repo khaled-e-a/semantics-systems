@@ -5,6 +5,7 @@ from src.substack_post.models import DigestEntry, DraftResult, Figure, Verdict, 
 
 DATE = "2026-09-28"
 EDIT_URL = "https://example.substack.com/publish/post/101"
+HOSTED = "https://raw.githubusercontent.com/khaled-e-a/semantics-systems/figures/2026-09-28"
 
 
 def _entry(rank, title=None):
@@ -59,9 +60,12 @@ def test_markdown_to_html_subset():
 
 def test_markdown_to_html_cdn_image_and_nested_bold_link():
     out = notify.markdown_to_html(
-        "![cap](https://substackcdn.com/img.png)\n\n**see [here](https://x.org)**"
+        "![cap <1>](https://substackcdn.com/img.png)\n\n**see [here](https://x.org)**"
     )
-    assert '<img src="https://substackcdn.com/img.png" alt="cap"' in out
+    assert '<img src="https://substackcdn.com/img.png" alt="cap &lt;1&gt;" style="max-width:100%;height:auto;display:block">' in out
+    # caption: a small italic paragraph right below the image, no wrapper element
+    assert out.index("<img") < out.index("<em>cap &lt;1&gt;</em></p>")
+    assert "<div" not in out and "<table" not in out
     assert "<strong>see <a href=\"https://x.org\"" in out
 
 
@@ -155,8 +159,10 @@ def test_failure_hint_for_redirect():
 
 
 def test_failure_hints_for_other_kinds():
-    assert any("SUBSTACK_PUBLICATION_URL" in h for h in notify.fix_hints(notify.SubstackFailure(notify.NOT_CONFIGURED, "x")))
-    assert "--skip-substack" in notify.fix_hints(notify.SubstackFailure(notify.SKIPPED, "x"))[0]
+    misconfigured = notify.fix_hints(notify.SubstackFailure(notify.NOT_CONFIGURED, "x"))
+    assert "SUBSTACK_PUBLICATION_URL" in misconfigured[0] and "SUBSTACK_SETUP.md" in misconfigured[0]
+    assert "paste-ready" in misconfigured[0]  # deleting the secrets is a valid way out
+    assert not hasattr(notify, "SKIPPED")  # --skip-substack is paste mode now, not a failure
     updating = notify.fix_hints(notify.SubstackFailure(notify.ERROR, "404", updating=True))
     assert any("state/substack_drafts.json" in h for h in updating)
 
@@ -171,6 +177,24 @@ def test_writer_failure_email():
     assert "Papers that passed the filter (2)" in html
     assert "attached as fig-2609.00001.png" in html
     assert "Benchmark only" in html
+    assert "could not be hosted" not in html
+
+
+def test_writer_failure_email_links_hosted_figures():
+    _, html = notify.build_writer_failure_email(
+        DATE, "x", KEEP, ENTRIES, VERDICTS, FIGS, attachment_names={}, hosted_urls={A.url: f"{HOSTED}/fig-2609.00001.png"}
+    )
+    assert f'<a href="{HOSTED}/fig-2609.00001.png" style="color:#1a56db">image</a>' in html
+    assert "attached as" not in html
+
+
+def test_writer_failure_email_hosting_failed():
+    _, html = notify.build_writer_failure_email(
+        DATE, "x", KEEP, ENTRIES, VERDICTS, FIGS, attachment_names={A.url: "fig-2609.00001.png"}, hosting_error="push <rejected>"
+    )
+    assert "Figures could not be hosted (push &lt;rejected&gt;) — they're attached instead." in html
+    assert "pasted images" not in html  # there is no post to paste
+    assert "attached as fig-2609.00001.png" in html
 
 
 # ---------------------------------------------------------------- quiet
@@ -191,3 +215,112 @@ def test_quiet_email_for_zero_keep_lists_drop_rationales():
     assert "why &lt;1&gt;" in html and "why &lt;2&gt;" in html
     assert "no verdict returned" in html
     assert "Calibrating &lt;Agents&gt; &amp; Friends" in html
+
+
+# ---------------------------------------------------------------- paste-ready layout
+
+HOSTED_MD = (
+    "# 2 Ways to <Check> AI\n\n"
+    "Intro with **bold**.\n\n"
+    f"![Figure 2 from “Calibrating <Agents> & Friends” (arXiv:2609.00001)]({HOSTED}/fig-2609.00001.png)\n\n"
+    "**[Calibrating <Agents> & Friends](http://arxiv.org/abs/2609.00001v1)** — Body A.\n\n"
+    "**[Paper 2](http://arxiv.org/abs/2609.00002v1)** — Body B.\n"
+)
+
+
+def _split_copy_block(html):
+    """(before the start marker, the copy block, after the end marker)."""
+    start = html.index(notify.COPY_START)
+    end = html.index(notify.COPY_END)
+    assert start < end
+    before, rest = html[:start], html[start + len(notify.COPY_START) :]
+    block, after = rest.split(notify.COPY_END, 1)
+    # the block runs from the rule below the start marker to the rule above the end marker
+    block = block.split("<hr", 1)[1].split(">", 1)[1].rsplit("<hr", 1)[0]
+    return before, block, after
+
+
+def test_paste_email_layout():
+    verify = VerifyResult(errors=["Link appears twice: <X>"], warnings=["Paragraph 2 has 230 words"])
+    subject, html = notify.build_paste_email(DATE, HOSTED_MD, KEEP, ENTRIES, VERDICTS, FIGS, verify, attachment_names={})
+    assert subject == "Substack post ready to paste: 2 Ways to <Check> AI"
+    before, block, after = _split_copy_block(html)
+
+    # Instructions first, then the title on its own, both outside the copy block.
+    assert before.index(notify.PASTE_INSTRUCTIONS) < before.index("2 Ways to &lt;Check&gt; AI")
+    assert "Title (paste it into the title field)" in before
+    assert "2 Ways to &lt;Check&gt; AI" not in block and "<h1" not in html
+
+    # Only the post body inside: intro, image, caption, paragraphs, in that order.
+    img = f'<img src="{HOSTED}/fig-2609.00001.png" alt="Figure 2 from “Calibrating &lt;Agents&gt; &amp; Friends” (arXiv:2609.00001)" style="max-width:100%;height:auto;display:block">'
+    caption = "<em>Figure 2 from “Calibrating &lt;Agents&gt; &amp; Friends” (arXiv:2609.00001)</em></p>"
+    paper_link = '<a href="http://arxiv.org/abs/2609.00001v1" style="color:#1a56db"><strong>Calibrating &lt;Agents&gt; &amp; Friends</strong></a> — Body A.'
+    assert block.index("Intro with <strong>bold</strong>.") < block.index(img) < block.index(caption) < block.index(paper_link)
+    assert block.index(paper_link) < block.index("Body B.")
+    for tag in ("<div", "<table", "<ul", "<details", "<hr", "<h1", "<h3"):
+        assert tag not in block
+    for note in ("not openly licensed", "No figure found", "Contribution", "Link appears twice", "figure attached", "Benchmark only"):
+        assert note not in block
+
+    # Review facts after the end marker, unchanged in content.
+    assert "Kept <strong>2</strong> of <strong>3</strong>" in after
+    assert "uncertainty-quantification" in after and "Figure 2 (from PDF)" in after
+    assert "Figure not openly licensed" in after and "No figure found" in after
+    assert "Link appears twice: &lt;X&gt;" in after and "Paragraph 2 has 230 words" in after
+    assert "<details" in after and "Benchmark only; no &lt;verification&gt; method." in after
+    assert "1 check(s) still fail" in before  # pointer to them above the post
+
+    # Paste mode is a normal outcome: no error box, no fix hints; the setup note is last.
+    assert "How to fix" not in html and "not created" not in html and "Reason:" not in html
+    assert "attached" not in html and "could not be hosted" not in html
+    assert html.rindex(notify.SETUP_NOTE) > html.index("Benchmark only")
+
+
+def test_failure_email_has_hints_then_the_same_paste_layout():
+    failure = notify.SubstackFailure(notify.AUTH_OR_BLOCK, "401 Unauthorized")
+    subject, html = notify.build_failure_email(DATE, failure, HOSTED_MD, KEEP, ENTRIES, VERDICTS, FIGS, VerifyResult())
+    assert subject == f"Substack draft NOT created — {DATE}"
+    before, block, after = _split_copy_block(html)
+    assert before.index("The Substack draft was not created.") < before.index("How to fix") < before.index(notify.PASTE_INSTRUCTIONS)
+    assert "Refresh SUBSTACK_COOKIE" in before and "401 Unauthorized" in before
+    assert "Title (paste it into the title field)" in before and "2 Ways to &lt;Check&gt; AI" not in block
+    assert f'<img src="{HOSTED}/fig-2609.00001.png"' in block
+    assert "Figure not openly licensed" in after and "Benchmark only" in after
+    assert notify.SETUP_NOTE not in html
+    assert "figure attached" not in html and "attached as" not in html
+
+
+def test_hosting_failed_note_and_attachment_placeholders():
+    md = HOSTED_MD.replace(f"{HOSTED}/fig-2609.00001.png", "fig-2609.00001.png")
+    _, html = notify.build_paste_email(
+        DATE, md, KEEP, ENTRIES, VERDICTS, FIGS, VerifyResult(),
+        attachment_names={A.url: "fig-2609.00001.png"}, hosting_error="git push <rejected>",
+    )
+    before, block, after = _split_copy_block(html)
+    assert (
+        "Figures could not be hosted (git push &lt;rejected&gt;) — they're attached instead; "
+        "pasted images won't carry over." in before
+    )
+    assert "<img" not in html
+    assert "\N{PAPERCLIP} figure attached: <strong>fig-2609.00001.png</strong>" in block
+    assert "attached as fig-2609.00001.png" in after
+
+
+def test_only_unhosted_figures_are_marked_attached():
+    figs = {A.url: _fig(A), B.url: _fig(B)}
+    md = (
+        "# T\n\nIntro.\n\n"
+        f"![cap A]({HOSTED}/fig-2609.00001.png)\n\n**[A](http://arxiv.org/abs/2609.00001v1)** — Body A.\n\n"
+        "![cap B](fig-2609.00002.png)\n\n**[B](http://arxiv.org/abs/2609.00002v1)** — Body B.\n"
+    )
+    failure = notify.SubstackFailure(notify.ERROR, "500")
+    for build in (
+        lambda **kw: notify.build_paste_email(DATE, md, KEEP, ENTRIES, VERDICTS, figs, VerifyResult(), **kw),
+        lambda **kw: notify.build_failure_email(DATE, failure, md, KEEP, ENTRIES, VERDICTS, figs, VerifyResult(), **kw),
+    ):
+        _, html = build(attachment_names={B.url: "fig-2609.00002.png"}, hosting_error="no public URL for 1 of 2 figure(s)")
+        _, block, after = _split_copy_block(html)
+        assert block.count("<img") == 1 and f'<img src="{HOSTED}/fig-2609.00001.png"' in block
+        assert block.count("figure attached") == 1 and "<strong>fig-2609.00002.png</strong>" in block
+        assert "attached as fig-2609.00002.png" in after and "attached as fig-2609.00001.png" not in after
+        assert "no public URL for 1 of 2 figure(s)" in html

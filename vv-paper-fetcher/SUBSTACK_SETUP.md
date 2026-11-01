@@ -1,14 +1,40 @@
-# Substack draft: setup checklist
+# Substack post: setup checklist
 
-What you need to do to get the weekly Substack draft working. How the
-pipeline works, and every option, is in [README.md](README.md) under
-"Substack draft post".
+What you need to do to get the weekly Substack post. How the pipeline works,
+and every option, is in [README.md](README.md) under "Substack draft post".
 
 **Already done:** the repo secrets `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`,
 `RESEND_API_KEY`, `REPORT_EMAIL_FROM`, and `REPORT_EMAIL_TO` are set. The
 digest uses them too.
 
-## One-time setup (about 10 minutes)
+## Simplest setup: nothing to do
+
+With only the secrets above, you get an email "Substack post ready to paste:
+<title>" every Monday, after the digest. To publish it:
+
+- In Substack, create a new post.
+- Copy the title from the email into the post's title field.
+- In the email, select everything between the two lines ("copy from here ↓"
+  and "↑ copy to here"), copy it, and paste it into the post body. The
+  figures and their captions come with it.
+- Check the notes below the post in the email (licenses, failing checks),
+  then publish.
+
+The figures are public. Before it sends the email, the workflow pushes them
+to the repo's `figures` branch, and the post shows them from there. If that
+push fails, the figures are attached to the email instead, and the email says
+so.
+
+Recommended: add the repo secret `SUBSTACK_WRITER_MODEL` (see the table in
+step 4 below). The default triage model writes dense posts with unexplained
+jargon.
+
+## Optional: automatic Substack drafts
+
+Instead of an email to paste from, the workflow can save the post as a draft
+in your Substack. This needs your Substack cookie. The cookie expires, so you
+must copy it again from time to time. The one-time setup takes about 10
+minutes.
 
 ### 1. Find your Substack address
 
@@ -77,7 +103,7 @@ draft and deletes it.
   `SUBSTACK_USE_WARP`), or running the Substack step on your own Mac. Ask
   Claude to set up whichever you choose.
 
-### 6. Do the first real run
+### 6. Do the first real run with drafts
 
 1. Click **Run workflow** again. Leave the smoke-test box unchecked, and set
    the report date to `2026-09-28`.
@@ -88,17 +114,17 @@ draft and deletes it.
    - the repo has a new commit with
      `vv-paper-fetcher/reports/2026-09-28-substack-post-ste100.md`.
 
-## Every week
+### Every week with drafts
 
 Nothing to start. After the Monday digest finishes, the workflow writes the
 post and saves it as a draft. You get an email with the link. Open it, review
 the post, and click publish in Substack.
 
-## When the cookie expires
+### When the cookie expires
 
 You get an email "Substack draft NOT created — <date>" that says the cookie
-needs a refresh. The email contains the whole post with the figures attached,
-so you can still publish that week by hand.
+needs a refresh. Below that, the email has the whole post ready to paste,
+with its figures, so you can still publish that week by hand.
 
 To fix it:
 
@@ -109,7 +135,10 @@ To fix it:
    report date to the date in the email subject.
 4. Do step 3 again to set a reminder for the new expiry date.
 
-## If cookie renewal becomes a chore
+To go back to the paste email, delete the `SUBSTACK_PUBLICATION_URL` and
+`SUBSTACK_COOKIE` secrets.
+
+### If cookie renewal becomes a chore
 
 Two changes can reduce or remove it. Ask Claude to build one:
 
@@ -122,13 +151,14 @@ Two changes can reduce or remove it. Ask Claude to build one:
   any Cloudflare block on GitHub's servers. Your Mac must be on and awake on
   Monday morning.
 
-## Optional
+## Other options
 
 - **Style example.** The writer copies the style of one approved post, set by
   `substack_post.style_example` in `config.yaml` (now
   `reports/2026-09-07-substack-post-ste100.md`). When you publish a post you
   like better, point this setting at it.
-- **Local runs.** To run `write_post.py` on your Mac without `--dry-run`, add
-  `SUBSTACK_PUBLICATION_URL`, `SUBSTACK_COOKIE`, and optionally
-  `SUBSTACK_WRITER_MODEL` to `vv-paper-fetcher/.env`. That file is
-  gitignored.
+- **Local runs.** `write_post.py` without `--dry-run` sends the email and
+  pushes the figures to the `figures` branch, so your Mac needs push access
+  to the repo. For drafts, add `SUBSTACK_PUBLICATION_URL`, `SUBSTACK_COOKIE`,
+  and optionally `SUBSTACK_WRITER_MODEL` to `vv-paper-fetcher/.env`. That
+  file is gitignored.

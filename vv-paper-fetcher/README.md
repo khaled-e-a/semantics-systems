@@ -64,7 +64,20 @@ links, no author names), puts each kept paper's main figure (with a credit
 caption) above its paragraph, and saves it as a **draft** on Substack. It
 never publishes: you get an email with a link to the draft, review it, and
 publish by hand. The post is also committed as
-`reports/YYYY-MM-DD-substack-post-ste100.md`; the figure files are not.
+`reports/YYYY-MM-DD-substack-post-ste100.md`; the figure files are not
+committed to `main`.
+
+**Paste mode.** Without the `SUBSTACK_PUBLICATION_URL` and `SUBSTACK_COOKIE`
+secrets (or with `--skip-substack`), there is no draft. Instead, the email
+has the post laid out to paste into Substack's editor: the title on its own,
+then the body between two "copy" markers. This is the simplest setup: it
+needs no cookie. So that the images survive the paste, `write_post.py` first
+pushes the week's figures to the repo's public `figures` branch (one folder
+per report date), and the post uses their `raw.githubusercontent.com` URLs.
+The committed post file uses the same URLs. The `figures` branch is not
+merged into `main`. If the push fails, the figures are attached to the email
+instead, and the email says so. When a draft is created, nothing is pushed:
+the draft's figures are on Substack.
 
 **Trigger.** `.github/workflows/substack-draft.yml` (repo root) runs after
 each successful "Weekly VV/UQ/Evals Paper Digest" run. You can also run it by
@@ -80,9 +93,10 @@ hand (Actions → Substack Draft Post → Run workflow) with:
 | Outcome | Email |
 |---|---|
 | Draft created | "Substack draft ready: …" with the editor link, kept/total papers, each paper's contribution type and figure, figures that are not openly licensed, any checks that still fail, and the dropped papers with reasons. |
-| Substack failed (expired cookie, Cloudflare block, not configured) | "Substack draft NOT created — DATE" with the reason, how to fix it, and the whole post as HTML with the figures attached, so you can still publish by hand. |
+| Substack not configured, or `--skip-substack` (paste mode) | "Substack post ready to paste: …" with the steps, the title, and the post body between copy markers, with the figures hosted on the `figures` branch. Below it, the same per-paper facts, failing checks, and dropped papers. |
+| Substack configured but failed (expired cookie, Cloudflare block, malformed secret, other error) | "Substack draft NOT created — DATE" with the reason and how to fix it, then the same paste-ready post with hosted images, so you can still publish by hand. |
 | Quiet week, or no paper passed the filter | "No Substack post this week — DATE" with the reasons papers were dropped. |
-| The LLM never returned a usable post | "Substack post NOT written — DATE" with the reason, the selected papers, and their figures attached. The workflow run is also marked failed. |
+| The LLM never returned a usable post | "Substack post NOT written — DATE" with the reason, the selected papers, and links to their hosted figures. The workflow run is also marked failed. |
 | Draft already exists for the date | Nothing: the run is skipped (use `force`). |
 | Unexpected error | The workflow fails and GitHub sends its usual failure email. |
 
@@ -90,8 +104,8 @@ hand (Actions → Substack Draft Post → Run workflow) with:
 
 | Name | Kind | Required | What |
 |---|---|---|---|
-| `SUBSTACK_PUBLICATION_URL` | secret | yes | `https://<name>.substack.com` — the substack.com address, not a custom domain. |
-| `SUBSTACK_COOKIE` | secret | yes | The full `Cookie` request header of a logged-in substack.com session (see below). |
+| `SUBSTACK_PUBLICATION_URL` | secret | for drafts | `https://<name>.substack.com` — the substack.com address, not a custom domain. Unset: paste mode. |
+| `SUBSTACK_COOKIE` | secret | for drafts | The full `Cookie` request header of a logged-in substack.com session (see below). Unset: paste mode. |
 | `SUBSTACK_WRITER_MODEL` | secret | no | OpenRouter model for writing the post. Default: `OPENROUTER_MODEL`. |
 | `SUBSTACK_PROXY` | secret | no | Proxy URL for Substack calls only, e.g. `socks5h://user:pass@host:port` or `http://host:port`. |
 | `SUBSTACK_USE_WARP` | variable | no | Set to `true` to route Substack calls through Cloudflare WARP (see below). |
@@ -135,7 +149,8 @@ self-hosted runner.
 python write_post.py --dry-run --verbose
 python write_post.py --date 2026-09-28 --dry-run --verbose
 
-# Write the post file and email it with the figures attached, without Substack
+# Paste mode without Substack: push the figures to the `figures` branch,
+# write the post file, and send the paste-ready email
 python write_post.py --skip-substack
 
 # Re-do a date that already has a draft: updates that same draft
