@@ -1,7 +1,9 @@
 """Orchestrator tests for write_post.py with every pipeline stage faked.
 
-write_post.py imports the input/writing/Substack modules, which land in
+write_post.py imports the input/writing/Substack modules and figure_host
+(which pushes figures to the public `figures` branch), which land in
 separate PRs; until they are all present this module is skipped.
+figure_host.publish_figures is always faked: these tests never push.
 """
 import base64
 import importlib
@@ -22,6 +24,7 @@ _DEPENDENCIES = [
         "render",
         "prosemirror",
         "substack_client",
+        "figure_host",
     )
 ]
 for _name in _DEPENDENCIES:
@@ -49,6 +52,7 @@ REAL_MARKDOWN_TO_DOC = write_post.prosemirror.markdown_to_doc
 
 DATE = "2026-09-28"
 PUB = "https://example.substack.com"
+HOSTED = f"https://raw.githubusercontent.com/khaled-e-a/semantics-systems/figures/{DATE}"
 ENV = {
     "OPENROUTER_API_KEY": "or-key",
     "OPENROUTER_MODEL": "base/model",
@@ -165,6 +169,8 @@ def pipe(tmp_path, monkeypatch):
         figdir=None,
         config={},
         writer_raises=None,
+        host_raises=None,  # exception raised by figure_host.publish_figures
+        host_skip=set(),  # paper URLs publish_figures leaves out of its result
     )
 
     FakeSubstackClient.instances = []
@@ -258,6 +264,14 @@ def pipe(tmp_path, monkeypatch):
         p.emails.append(SimpleNamespace(subject=subject, html=html_body, attachments=attachments))
         return True
 
+    def publish_figures(files, report_date, repo_dir, **kwargs):
+        record("publish_figures", dict(files), report_date, repo_dir)
+        for path, _name in files.values():
+            assert Path(path).exists()  # hosted before the temp figure dir is removed
+        if p.host_raises is not None:
+            raise p.host_raises
+        return {url: f"{HOSTED}/{name}" for url, (_path, name) in files.items() if url not in p.host_skip}
+
     monkeypatch.setattr(write_post, "REPORTS_DIR", reports)
     monkeypatch.setattr(write_post, "DRAFTS_STATE_PATH", state_path)
     monkeypatch.setattr(write_post, "load_env_vars", lambda required, optional=(): dict(p.env))
@@ -277,6 +291,7 @@ def pipe(tmp_path, monkeypatch):
     monkeypatch.setattr(write_post.prosemirror, "split_title", split_title)
     monkeypatch.setattr(write_post.prosemirror, "markdown_to_doc", markdown_to_doc)
     monkeypatch.setattr(write_post.substack_client, "SubstackClient", FakeSubstackClient)
+    monkeypatch.setattr(write_post.figure_host, "publish_figures", publish_figures)
     return p
 
 
@@ -353,6 +368,7 @@ def test_success_creates_draft_writes_cdn_post_and_state(pipe):
     assert "No figure found" in email.html  # paper 3 has no figure
     assert "not openly licensed" in email.html
     assert pipe.figdir is not None and not pipe.figdir.exists()  # temp figures cleaned up
+    assert "publish_figures" not in pipe.calls  # the draft has Substack-hosted images already
 
 
 def test_already_drafted_skips_without_email(pipe):
@@ -412,34 +428,90 @@ def test_cloudflare_block_puts_warp_hint_first(pipe):
     assert "residential proxy" in html  # SUBSTACK_PROXY was set for this run
 
 
-def test_auth_failure_emails_post_with_attachments(pipe):
+def test_auth_failure_emails_paste_ready_post_with_hosted_figures(pipe):
     FakeSubstackClient.fail_with = _auth_error("cookie", "401 Unauthorized")
     assert write_post.main(["--date", DATE]) == 0
 
     assert not pipe.state_path.exists()
+    ((files, report_date, repo_dir), _kw), = pipe.calls["publish_figures"]
+    assert files == {ENTRIES[0].url: (pipe.figdir / "2609.00001-main.png", "fig-2609.00001.png")}
+    assert report_date == DATE and repo_dir == write_post.PROJECT_ROOT
     post_md = pipe.post_path.read_text(encoding="utf-8")
-    assert "](fig-2609.00001.png)" in post_md
-    assert "substack-post-media" not in post_md
+    assert f"]({HOSTED}/fig-2609.00001.png)" in post_md
+    assert "substack-post-media" not in post_md and "](fig-" not in post_md
 
     (email,) = pipe.emails
     assert email.subject == f"Substack draft NOT created — {DATE}"
     assert "401 Unauthorized" in email.html
     assert email.html.index("Refresh SUBSTACK_COOKIE") < email.html.index("SUBSTACK_USE_WARP")
-    assert "figure attached: <strong>fig-2609.00001.png</strong>" in email.html
+    assert email.html.index("SUBSTACK_USE_WARP") < email.html.index(write_post.notify.COPY_START)
+    assert f'<img src="{HOSTED}/fig-2609.00001.png"' in email.html
+    assert "figure attached" not in email.html
     assert "Paper 1 &lt;T&amp;C&gt;" in email.html
+    assert email.attachments is None
+
+
+@pytest.mark.parametrize("unset", ["SUBSTACK_COOKIE", "SUBSTACK_PUBLICATION_URL"])
+def test_missing_substack_config_sends_paste_email(pipe, unset):
+    del pipe.env[unset]
+    assert write_post.main([]) == 0
+    assert not FakeSubstackClient.instances
+    assert len(pipe.calls["publish_figures"]) == 1
+
+    post_md = pipe.post_path.read_text(encoding="utf-8")
+    assert f"![Figure 1 from “Paper 1 <T&C>” (arXiv:2609.00001)]({HOSTED}/fig-2609.00001.png)" in post_md
+    assert not pipe.state_path.exists()
+
+    (email,) = pipe.emails
+    assert email.subject == "Substack post ready to paste: 2 Ways to Check AI"
+    assert email.attachments is None
+    html = email.html
+    assert html.index(write_post.notify.PASTE_INSTRUCTIONS) < html.index(write_post.notify.COPY_START)
+    block = html.split(write_post.notify.COPY_START, 1)[1].split(write_post.notify.COPY_END, 1)[0]
+    assert f'<img src="{HOSTED}/fig-2609.00001.png" alt="Figure 1 from “Paper 1 &lt;T&amp;C&gt;” (arXiv:2609.00001)"' in block
+    assert "2 Ways to Check AI" not in block  # the title goes in Substack's title field
+    assert "How to fix" not in html and "not configured" not in html and "figure attached" not in html
+    assert write_post.notify.SETUP_NOTE in html
+    assert "Link appears twice: X" in html  # remaining verify error still surfaced
+    assert pipe.figdir is not None and not pipe.figdir.exists()
+
+
+@pytest.mark.parametrize("exc", ["figure_host_error", "unexpected"])
+def test_hosting_failure_falls_back_to_attachments(pipe, exc):
+    del pipe.env["SUBSTACK_COOKIE"]
+    pipe.host_raises = (
+        write_post.figure_host.FigureHostError("git push rejected") if exc == "figure_host_error" else OSError("git push rejected")
+    )
+    assert write_post.main([]) == 0
+
+    post_md = pipe.post_path.read_text(encoding="utf-8")
+    assert "](fig-2609.00001.png)" in post_md and HOSTED not in post_md
+
+    (email,) = pipe.emails
+    assert email.subject == "Substack post ready to paste: 2 Ways to Check AI"
+    assert "Figures could not be hosted (git push rejected)" in email.html
+    assert "pasted images won't carry over" in email.html
+    assert "figure attached: <strong>fig-2609.00001.png</strong>" in email.html
+    assert "<img" not in email.html
     (attachment,) = email.attachments
     assert attachment["filename"] == "fig-2609.00001.png"
     assert base64.b64decode(attachment["content"]) == b"\x89PNG fake 2609.00001"
 
 
-def test_missing_substack_config_is_a_failure_not_a_crash(pipe):
-    del pipe.env["SUBSTACK_COOKIE"]
+def test_partly_hosted_figures_attach_only_the_rest(pipe):
+    FakeSubstackClient.fail_with = _auth_error("cookie", "401 Unauthorized")
+    pipe.no_figure_urls = set()  # papers 1 and 3 both have a figure
+    pipe.host_skip = {ENTRIES[2].url}
     assert write_post.main([]) == 0
-    assert not FakeSubstackClient.instances
+
+    post_md = pipe.post_path.read_text(encoding="utf-8")
+    assert f"]({HOSTED}/fig-2609.00001.png)" in post_md and "](fig-2609.00003.png)" in post_md
     (email,) = pipe.emails
     assert email.subject == f"Substack draft NOT created — {DATE}"
-    assert "Substack not configured" in email.html
-    assert pipe.post_path.exists() and not pipe.state_path.exists()
+    assert f'<img src="{HOSTED}/fig-2609.00001.png"' in email.html
+    assert email.html.count("figure attached") == 1 and "<strong>fig-2609.00003.png</strong>" in email.html
+    assert "no public URL for 1 of 2 figure(s)" in email.html
+    assert [a["filename"] for a in email.attachments] == ["fig-2609.00003.png"]
 
 
 def test_malformed_substack_config_is_a_failure_not_a_crash(pipe):
@@ -450,12 +522,15 @@ def test_malformed_substack_config_is_a_failure_not_a_crash(pipe):
     assert "Substack misconfigured: SUBSTACK_COOKIE is empty" in email.html
 
 
-def test_skip_substack_flag(pipe):
-    assert write_post.main(["--skip-substack"]) == 0
+def test_skip_substack_flag_sends_paste_email(pipe):
+    assert write_post.main(["--skip-substack"]) == 0  # Substack secrets are set, but not used
     assert not FakeSubstackClient.instances
+    assert len(pipe.calls["publish_figures"]) == 1
     (email,) = pipe.emails
-    assert "--skip-substack" in email.html
-    assert len(email.attachments) == 1
+    assert email.subject == "Substack post ready to paste: 2 Ways to Check AI"
+    assert "How to fix" not in email.html
+    assert f'<img src="{HOSTED}/fig-2609.00001.png"' in email.html
+    assert email.attachments is None
 
 
 def test_unexpected_substack_exception_still_emails_then_exits_nonzero(pipe):
@@ -484,15 +559,35 @@ def test_writer_failure_emails_and_exits_nonzero(pipe):
     (email,) = pipe.emails
     assert email.subject == f"Substack post NOT written — {DATE}"
     assert "post generation failed: no parseable JSON after 3 attempts" in email.html
-    assert [a["filename"] for a in email.attachments] == ["fig-2609.00001.png"]
+    assert len(pipe.calls["publish_figures"]) == 1
+    assert f'href="{HOSTED}/fig-2609.00001.png"' in email.html
+    assert email.attachments is None
     assert not FakeSubstackClient.instances
     assert not pipe.post_path.exists() and not pipe.state_path.exists()
+
+
+def test_writer_failure_with_hosting_failure_attaches_figures(pipe):
+    pipe.writer_raises = _writer_error("boom")
+    pipe.host_raises = write_post.figure_host.FigureHostError("no network")
+    assert write_post.main([]) == 1
+    (email,) = pipe.emails
+    assert "Figures could not be hosted (no network)" in email.html
+    assert [a["filename"] for a in email.attachments] == ["fig-2609.00001.png"]
+
+
+def test_writer_failure_without_figures_does_not_host(pipe):
+    pipe.writer_raises = _writer_error("boom")
+    pipe.no_figure_urls = {e.url for e in ENTRIES}
+    assert write_post.main([]) == 1
+    assert "publish_figures" not in pipe.calls
+    assert pipe.emails[0].attachments is None
 
 
 def test_writer_failure_in_dry_run_sends_nothing(pipe):
     pipe.writer_raises = _writer_error("boom")
     assert write_post.main(["--dry-run"]) == 1
     assert pipe.emails == []
+    assert "publish_figures" not in pipe.calls
 
 
 def test_configured_style_example_is_used(pipe, tmp_path):
@@ -528,6 +623,7 @@ def test_dry_run_writes_and_sends_nothing(pipe, capsys):
     assert str(pipe.figdir / "2609.00001-main.png") in out
     assert pipe.emails == []
     assert not FakeSubstackClient.instances
+    assert "publish_figures" not in pipe.calls
     assert not pipe.post_path.exists()
     assert pipe.state_path.read_text(encoding="utf-8") == before
 
@@ -564,3 +660,19 @@ def test_real_render_and_prosemirror_glue(pipe, monkeypatch):
     post_md = pipe.post_path.read_text(encoding="utf-8")
     assert post_md.startswith("# 2 Ways to Check AI\n")
     assert f"**[Paper 1 <T&C>]({ENTRIES[0].url})** — Body for 1." in post_md
+
+
+def test_real_render_paste_email_glue(pipe, monkeypatch):
+    """The real renderer's hosted-image markdown must come out as <img> + caption inside the copy block."""
+    monkeypatch.setattr(write_post.render, "render_markdown", REAL_RENDER)
+    del pipe.env["SUBSTACK_COOKIE"]
+    assert write_post.main([]) == 0
+
+    post_md = pipe.post_path.read_text(encoding="utf-8")
+    assert post_md.startswith("# 2 Ways to Check AI\n")
+    (email,) = pipe.emails
+    block = email.html.split(write_post.notify.COPY_START, 1)[1].split(write_post.notify.COPY_END, 1)[0]
+    assert block.index("This week covers a few papers.") < block.index(f'<img src="{HOSTED}/fig-2609.00001.png"')
+    assert "<em>Figure 1 from “Paper 1 &lt;T&amp;C&gt;” (arXiv:2609.00001)</em>" in block
+    paper_link = f'<a href="{ENTRIES[0].url}" style="color:#1a56db"><strong>Paper 1 &lt;T&amp;C&gt;</strong></a>'
+    assert f"{paper_link} — Body for 1." in block

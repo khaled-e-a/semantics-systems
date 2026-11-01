@@ -1,10 +1,19 @@
 """Notification emails for write_post.py: one (subject, html) builder per outcome.
 
 - success: the draft exists on Substack; the email links to the editor.
-- failure: the draft could not be created (auth, Cloudflare, not configured,
-  other Substack error); the email carries the whole post as HTML and the
-  figures go as attachments, so nothing is lost.
+- paste: Substack is not configured (or --skip-substack); the email is the
+  post laid out to copy into Substack's editor by hand. This is a normal
+  outcome, not a failure.
+- failure: Substack is configured but the draft could not be created (auth,
+  Cloudflare, malformed config, other Substack error); the email has the
+  reason and how to fix it, then the same paste-ready post.
+- writer failure: the LLM never produced a usable post.
 - quiet: no post this week (quiet-week report, or no paper passed the filter).
+
+In the paste-ready post, figures are <img> tags that point at public copies
+(write_post.py pushes them to the repo's ``figures`` branch first), so they
+survive copy-paste. A figure that could not be hosted is attached to the
+email instead, and the post shows a "figure attached" note in its place.
 
 The HTML is deliberately plain and inline-styled (email clients handle
 <style> blocks inconsistently). Every piece of text goes through
@@ -19,10 +28,11 @@ from pathlib import PurePosixPath
 from typing import List, Mapping, Optional, Sequence, Tuple
 
 from .models import DigestEntry, DraftResult, Figure, Verdict, VerifyResult
+from .prosemirror import split_title
 
-# Failure kinds, in the order write_post.py checks for them.
-SKIPPED = "skipped"  # --skip-substack
-NOT_CONFIGURED = "not_configured"  # SUBSTACK_PUBLICATION_URL / SUBSTACK_COOKIE missing
+# Failure kinds, in the order write_post.py checks for them. Secrets that are
+# simply unset (or --skip-substack) are not a failure: they get the paste email.
+NOT_CONFIGURED = "not_configured"  # SUBSTACK_PUBLICATION_URL / SUBSTACK_COOKIE set but malformed
 AUTH_OR_BLOCK = "auth_or_block"  # SubstackAuthOrBlockError: expired cookie or Cloudflare block
 ERROR = "error"  # any other SubstackError (or unexpected error while talking to Substack)
 
@@ -31,7 +41,7 @@ ERROR = "error"  # any other SubstackError (or unexpected error while talking to
 class SubstackFailure:
     """Why the draft was not created, for the failure email."""
 
-    kind: str  # one of SKIPPED, NOT_CONFIGURED, AUTH_OR_BLOCK, ERROR
+    kind: str  # one of NOT_CONFIGURED, AUTH_OR_BLOCK, ERROR
     message: str
     proxy_in_use: bool = False  # a proxy (WARP or SUBSTACK_PROXY) was set for this run
     updating: bool = False  # --force: the failing call was an update of an existing draft
@@ -73,6 +83,7 @@ _INLINE_RE = re.compile(
     r"|\*\*(?P<b>.+?)\*\*"  # **bold**
 )
 _P_STYLE = "margin:0 0 16px;line-height:1.6"
+_CAPTION_STYLE = "margin:6px 0 20px;color:#555;font-size:13px;line-height:1.4"
 _HEADING_STYLES = {
     1: "font-size:24px;line-height:1.3;margin:0 0 16px",
     2: "font-size:19px;line-height:1.3;margin:24px 0 12px",
@@ -96,11 +107,11 @@ def _inline_to_html(text: str) -> str:
 
 
 def _image_to_html(alt: str, src: str) -> str:
+    # No wrapper element: a bare <img> plus a caption paragraph pastes cleanly into Substack.
     if _is_web_url(src):
         return (
-            f'<div style="margin:0 0 12px"><img src="{_e(src)}" alt="{_e(alt)}" '
-            f'style="max-width:100%;height:auto;display:block">'
-            f'<div style="{_MUTED};margin-top:4px">{_e(alt)}</div></div>'
+            f'<img src="{_e(src)}" alt="{_e(alt)}" style="max-width:100%;height:auto;display:block">\n'
+            f'<p style="{_CAPTION_STYLE}"><em>{_e(alt)}</em></p>'
         )
     filename = PurePosixPath(src).name or src
     return (
@@ -114,8 +125,9 @@ def markdown_to_html(markdown: str) -> str:
 
     Supported: ``# heading`` lines, paragraphs, ``**[t](u)**``, ``**b**``,
     ``[t](u)``, and image lines ``![caption](src)``. An image whose src is an
-    http(s) URL renders as <img>; any other src is an attachment filename and
-    renders as a "figure attached" note.
+    http(s) URL renders as <img> with the caption as a small italic paragraph
+    below it; any other src is an attachment filename and renders as a
+    "figure attached" note.
     """
     blocks: List[str] = []
     paragraph: List[str] = []
@@ -221,6 +233,7 @@ def _papers_section(
     figs: Mapping[str, Figure],
     attachment_names: Optional[Mapping[str, str]] = None,
     heading: str = "Papers in the post",
+    hosted_urls: Optional[Mapping[str, str]] = None,
 ) -> str:
     items = []
     for e in keep_entries:
@@ -235,6 +248,8 @@ def _papers_section(
             facts.append(f"Figure {_e(fig.figure_number)} (from {_e(source)})")
             if attachment_names and e.url in attachment_names:
                 facts.append(f"attached as {_e(attachment_names[e.url])}")
+            elif hosted_urls and e.url in hosted_urls:
+                facts.append(_a(hosted_urls[e.url], "image"))
             if not fig.openly_licensed:
                 flags.append("Figure not openly licensed — check the paper's license before publishing.")
         line = f"{_a(e.url, f'<strong>{_e(e.title)}</strong>')}<br><span style=\"{_MUTED}\">{' · '.join(facts)}</span>"
@@ -249,6 +264,105 @@ def _kept_line(report_date: str, keep_count: int, total: int) -> str:
         f'<p style="margin:0 0 8px">Kept <strong>{keep_count}</strong> of <strong>{total}</strong> '
         f"papers from the {_e(report_date)} digest.</p>"
     )
+
+
+def _hosting_failed_note(reason: str, in_post: bool = True) -> str:
+    """write_post.py could not push the figures to the public ``figures`` branch."""
+    inner = f'<strong style="color:#b45309">Figures could not be hosted ({_e(reason)}) \N{EM DASH} they\'re attached instead'
+    if not in_post:  # writer failure: there is no post to paste
+        inner += ".</strong>"
+    else:
+        inner += (
+            "; pasted images won't carry over.</strong>"
+            '<p style="margin:8px 0 0">In Substack, upload each attached figure where its '
+            "\N{PAPERCLIP} note is, and delete the note.</p>"
+        )
+    return _box(inner, "#d97706", "#fffbeb")
+
+
+# --------------------------------------------------------------------------
+# Paste-ready post (paste and failure emails)
+# --------------------------------------------------------------------------
+
+PASTE_INSTRUCTIONS = (
+    "To publish: in Substack, create a new post, paste the title into the title field, then copy "
+    "everything between the two lines below and paste it into the body."
+)
+SETUP_NOTE = "Want automatic drafts instead? See SUBSTACK_SETUP.md."
+COPY_START = "copy from here \N{DOWNWARDS ARROW}"
+COPY_END = "\N{UPWARDS ARROW} copy to here"
+_MARKER_STYLE = "color:#9ca3af;font-size:12px"
+_RULE = '<hr style="border:0;border-top:1px solid #d1d5db;margin:{margin}">'
+
+
+def _paste_ready_post(
+    report_date: str,
+    post_markdown: str,
+    keep_entries: Sequence[DigestEntry],
+    all_entries: Sequence[DigestEntry],
+    verdicts: Mapping[str, Verdict],
+    figs: Mapping[str, Figure],
+    verify: VerifyResult,
+    attachment_names: Optional[Mapping[str, str]],
+    hosting_error: Optional[str],
+) -> List[str]:
+    """Instructions, the title, the post body between copy markers, then the review facts.
+
+    Only the post body sits between the markers, so a select-and-copy picks up
+    nothing else. Everything to check before publishing comes after them.
+    """
+    title, body = split_title(post_markdown)
+    parts = [f'<p style="margin:0 0 12px;font-weight:600">{_e(PASTE_INSTRUCTIONS)}</p>']
+    if hosting_error:
+        parts.append(_hosting_failed_note(hosting_error))
+    if verify.errors:
+        parts.append(
+            f'<p style="margin:0 0 12px;color:#b91c1c;font-weight:600">{len(verify.errors)} check(s) still '
+            "fail. They are listed below the post: fix them before publishing.</p>"
+        )
+    if title:
+        parts.append(
+            f'<p style="{_MUTED};margin:16px 0 4px">Title (paste it into the title field)</p>'
+            f'<p style="font-size:22px;line-height:1.3;font-weight:700;margin:0 0 24px">{_e(title)}</p>'
+        )
+    parts += [
+        f'<p style="margin:0;{_MARKER_STYLE}">{_e(COPY_START)}</p>',
+        _RULE.format(margin="4px 0 20px"),
+        markdown_to_html(body),
+        _RULE.format(margin="20px 0 4px"),
+        f'<p style="margin:0 0 24px;{_MARKER_STYLE}">{_e(COPY_END)}</p>',
+        _kept_line(report_date, len(keep_entries), len(all_entries)),
+        _papers_section(keep_entries, verdicts, figs, attachment_names),
+        _verify_errors_block(verify),
+        _verify_warnings_block(verify),
+        _drop_section(all_entries, verdicts),
+    ]
+    return parts
+
+
+def build_paste_email(
+    report_date: str,
+    post_markdown: str,
+    keep_entries: Sequence[DigestEntry],
+    all_entries: Sequence[DigestEntry],
+    verdicts: Mapping[str, Verdict],
+    figs: Mapping[str, Figure],
+    verify: VerifyResult,
+    attachment_names: Optional[Mapping[str, str]] = None,
+    hosting_error: Optional[str] = None,
+) -> Tuple[str, str]:
+    """Substack is not set up (or --skip-substack): the post, ready to paste by hand.
+
+    ``post_markdown`` has hosted http(s) image srcs, or attachment filenames for
+    figures that could not be hosted (listed in ``attachment_names``).
+    """
+    title, _ = split_title(post_markdown)
+    subject = f"Substack post ready to paste: {title or report_date}"
+    parts = _paste_ready_post(
+        report_date, post_markdown, keep_entries, all_entries, verdicts, figs, verify, attachment_names, hosting_error
+    )
+    parts.append(f'<p style="{_MUTED};margin:24px 0 0">{_e(SETUP_NOTE)}</p>')
+    return subject, _page("\n".join(p for p in parts if p))
 
 
 # --------------------------------------------------------------------------
@@ -298,23 +412,20 @@ _USE_WARP = (
     "set the repo variable SUBSTACK_USE_WARP=true (routes Substack calls through Cloudflare WARP), "
     "or set the SUBSTACK_PROXY secret to a proxy URL."
 )
+_PUBLISH_BY_HAND = "Or publish by hand: paste the post below into a new Substack post."
 _RERUN = (
     "After fixing it, re-run: GitHub → Actions → Substack Draft Post → Run workflow, with report_date set to "
-    "this date. Or publish by hand: the post is below and the figures are attached."
+    f"this date. {_PUBLISH_BY_HAND}"
 )
 
 
 def fix_hints(failure: SubstackFailure) -> List[str]:
     """Concrete next steps for the failure email, most likely fix first."""
-    if failure.kind == SKIPPED:
-        return [
-            "Nothing to fix: this run used --skip-substack. Paste the post below into a new Substack "
-            "draft, or re-run without --skip-substack."
-        ]
     if failure.kind == NOT_CONFIGURED:
         return [
-            "Set the repo secrets SUBSTACK_PUBLICATION_URL (your https://<name>.substack.com address, not a "
-            "custom domain) and SUBSTACK_COOKIE (see the 'Substack draft post' section of the README).",
+            "Fix the repo secrets SUBSTACK_PUBLICATION_URL (your https://<name>.substack.com address, not a "
+            "custom domain) and SUBSTACK_COOKIE (see SUBSTACK_SETUP.md). Or delete both secrets to get the "
+            "post as a paste-ready email every week instead.",
             _RERUN,
         ]
     if failure.kind == AUTH_OR_BLOCK:
@@ -346,7 +457,7 @@ def fix_hints(failure: SubstackFailure) -> List[str]:
             "The error happened while updating the existing draft (--force). If you already published that "
             "draft, remove this date from state/substack_drafts.json and re-run to create a new one."
         )
-    hints.append("Or publish by hand: the post is below and the figures are attached.")
+    hints.append(_PUBLISH_BY_HAND)
     return hints
 
 
@@ -360,7 +471,9 @@ def build_failure_email(
     figs: Mapping[str, Figure],
     verify: VerifyResult,
     attachment_names: Optional[Mapping[str, str]] = None,
+    hosting_error: Optional[str] = None,
 ) -> Tuple[str, str]:
+    """Substack is configured but refused or failed: the reason and fixes, then the paste-ready post."""
     subject = f"Substack draft NOT created — {report_date}"
     reason_box = _box(
         f'<strong style="color:#b91c1c;font-size:16px">The Substack draft was not created.</strong>'
@@ -370,22 +483,12 @@ def build_failure_email(
         "#dc2626",
         "#fef2f2",
     )
-    post_block = (
-        _section_title("The post (copy it into Substack; figures are attached)")
-        + '<div style="border:1px solid #e5e7eb;border-radius:6px;padding:20px">'
-        + markdown_to_html(post_markdown)
-        + "</div>"
-    )
     parts = [
         f'<p style="{_MUTED};margin:0 0 8px">Substack draft post for the {_e(report_date)} digest.</p>',
         reason_box,
-        _verify_errors_block(verify),
-        _kept_line(report_date, len(keep_entries), len(all_entries)),
-        _papers_section(keep_entries, verdicts, figs, attachment_names),
-        _verify_warnings_block(verify),
-        post_block,
-        _drop_section(all_entries, verdicts),
-    ]
+    ] + _paste_ready_post(
+        report_date, post_markdown, keep_entries, all_entries, verdicts, figs, verify, attachment_names, hosting_error
+    )
     return subject, _page("\n".join(p for p in parts if p))
 
 
@@ -397,8 +500,13 @@ def build_writer_failure_email(
     verdicts: Mapping[str, Verdict],
     figs: Mapping[str, Figure],
     attachment_names: Optional[Mapping[str, str]] = None,
+    hosted_urls: Optional[Mapping[str, str]] = None,
+    hosting_error: Optional[str] = None,
 ) -> Tuple[str, str]:
-    """The LLM never produced a usable post: no draft, no post file."""
+    """The LLM never produced a usable post: no draft, no post file.
+
+    Each figure is linked at its ``hosted_urls`` entry when hosting worked; the rest are attached.
+    """
     subject = f"Substack post NOT written — {report_date}"
     reason_box = _box(
         '<strong style="color:#b91c1c;font-size:16px">Post generation failed, so no draft was created.</strong>'
@@ -422,8 +530,11 @@ def build_writer_failure_email(
     parts = [
         f'<p style="{_MUTED};margin:0 0 8px">Substack draft post for the {_e(report_date)} digest.</p>',
         reason_box,
+        _hosting_failed_note(hosting_error, in_post=False) if hosting_error else "",
         _kept_line(report_date, len(keep_entries), len(all_entries)),
-        _papers_section(keep_entries, verdicts, figs, attachment_names, heading="Papers that passed the filter"),
+        _papers_section(
+            keep_entries, verdicts, figs, attachment_names, heading="Papers that passed the filter", hosted_urls=hosted_urls
+        ),
         _drop_section(all_entries, verdicts),
     ]
     return subject, _page("\n".join(p for p in parts if p))

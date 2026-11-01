@@ -3,9 +3,11 @@
 
 Turns reports/YYYY-MM-DD.md into a post that follows WRITING_SUBSTACK_POST.md,
 puts each paper's main figure above its paragraph, saves it as a Substack
-DRAFT, and emails a link to review and publish. If Substack refuses (expired
-cookie, Cloudflare block, not configured) the email carries the whole post
-with the figures attached instead. See README.md ("Substack draft post").
+DRAFT, and emails a link to review and publish. When Substack is not
+configured, or refuses (expired cookie, Cloudflare block), the email carries
+the whole post ready to paste into Substack's editor, with the figures pushed
+to the repo's public `figures` branch so they paste as images. See README.md
+("Substack draft post").
 
 Run `python write_post.py --dry-run --verbose` to print the post without
 touching Substack, email, the post file, or state.
@@ -26,6 +28,7 @@ from src.config import PROJECT_ROOT, load_config, load_env_vars
 from src.email_sender import attachment_from_path, send_digest_email
 from src.substack_post import (
     draft_state,
+    figure_host,
     figures,
     notify,
     paper_details,
@@ -65,7 +68,7 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser.add_argument("--date", type=_report_date, default=None, help="Report date (YYYY-MM-DD). Default: newest report in reports/.")
     parser.add_argument("--force", action="store_true", help="Run even if this date already has a draft; UPDATES that draft instead of creating a duplicate.")
     parser.add_argument("--dry-run", action="store_true", help="Print the post (local figure paths) to stdout; no Substack, email, post file, or state writes.")
-    parser.add_argument("--skip-substack", action="store_true", help="Don't call Substack; write the post file and send the 'not created' email with figures attached.")
+    parser.add_argument("--skip-substack", action="store_true", help="Don't call Substack; host the figures, write the post file, and send the paste-ready email.")
     parser.add_argument("--verbose", action="store_true")
     return parser.parse_args(argv)
 
@@ -137,6 +140,42 @@ def load_style_example(config: Dict, report_date: str) -> Optional[str]:
     except OSError as exc:
         logger.warning("Configured style example unreadable (%s); writing without one", exc)
         return None
+
+
+def _host_figures(
+    figs: Dict[str, Figure], names: Dict[str, str], report_date: str
+) -> Tuple[Dict[str, str], Optional[str]]:
+    """Push the figures to the repo's public `figures` branch, so the emailed post pastes with its images.
+
+    Returns ({paper URL: https URL}, None) when every figure is hosted. Otherwise
+    returns the ones that were hosted and the reason for the rest. Never raises:
+    a figure without a hosted URL is attached to the email instead.
+    """
+    if not names:
+        return {}, None
+    files = {url: (figs[url].path, name) for url, name in names.items()}
+    try:
+        returned = figure_host.publish_figures(files, report_date, PROJECT_ROOT)
+    except Exception as exc:  # noqa: BLE001 — hosting is a convenience; attachments still deliver the figures
+        reason = str(exc) or type(exc).__name__
+        unexpected = not isinstance(exc, figure_host.FigureHostError)
+        logger.warning("Could not host figures (%s); attaching them instead", reason, exc_info=unexpected)
+        return {}, reason
+    hosted = {
+        url: src
+        for url, src in (returned or {}).items()
+        if url in files and isinstance(src, str) and src.lower().startswith("https://")
+    }
+    missing = [url for url in files if url not in hosted]
+    if missing:
+        logger.warning("No hosted URL for %d figure(s); attaching them instead: %s", len(missing), missing)
+        return hosted, f"no public URL for {len(missing)} of {len(files)} figure(s)"
+    logger.info("Hosted %d figure(s) on the figures branch", len(hosted))
+    return hosted, None
+
+
+def _attachments(figs: Dict[str, Figure], names: Dict[str, str]) -> List[Dict[str, str]]:
+    return [attachment_from_path(figs[url].path, name) for url, name in names.items()]
 
 
 def _send(env: Dict[str, str], subject: str, html: str, attachments: Optional[List[Dict[str, str]]] = None) -> bool:
@@ -225,10 +264,20 @@ def main(argv: Optional[List[str]] = None) -> int:
         # No LLM attempt returned a usable post. Tell the user, then fail the run (red in Actions).
         logger.error("Post generation failed: %s", exc)
         if not args.dry_run:
+            hosted, host_error = _host_figures(figs, names, report_date)
+            unhosted = {url: name for url, name in names.items() if url not in hosted}
             subject, html = notify.build_writer_failure_email(
-                report_date, str(exc) or type(exc).__name__, keep, entries, verdicts, figs, attachment_names=names
+                report_date,
+                str(exc) or type(exc).__name__,
+                keep,
+                entries,
+                verdicts,
+                figs,
+                attachment_names=unhosted,
+                hosted_urls=hosted,
+                hosting_error=host_error,
             )
-            _send(env, subject, html, [attachment_from_path(figs[url].path, name) for url, name in names.items()])
+            _send(env, subject, html, _attachments(figs, unhosted) or None)
             shutil.rmtree(figdir, ignore_errors=True)
         return 1
     logger.info("Post: %r — verify errors=%d warnings=%d", post.title, len(verify.errors), len(verify.warnings))
@@ -240,22 +289,25 @@ def main(argv: Optional[List[str]] = None) -> int:
         _log_summary(report_date, entries, keep, figs, verify, "dry-run", None)
         return 0
 
-    # 5. Substack draft. Every handled failure falls through to the failure email.
+    # 5. Substack draft. Without the Substack secrets (or with --skip-substack) this is
+    # paste mode: a normal outcome, not a failure. Every handled failure of a configured
+    # Substack falls through to the failure email.
     pub = env.get("SUBSTACK_PUBLICATION_URL")
     cookie = env.get("SUBSTACK_COOKIE")
     proxy = env.get("SUBSTACK_PROXY")
     updating = bool(args.force and existing)
+    paste_mode: Optional[str] = None  # why the post goes out as a paste email: "skipped" | "not_configured"
     failure: Optional[notify.SubstackFailure] = None
     draft: Optional[DraftResult] = None
     unexpected = False
     client = None
     md_cdn = title = ""
     if args.skip_substack:
-        failure = notify.SubstackFailure(notify.SKIPPED, "Substack upload skipped (--skip-substack).")
+        paste_mode = "skipped"
+        logger.info("Substack skipped (--skip-substack): sending the post to paste by hand")
     elif not (pub and cookie):
-        failure = notify.SubstackFailure(
-            notify.NOT_CONFIGURED, "Substack not configured: SUBSTACK_PUBLICATION_URL and/or SUBSTACK_COOKIE is not set."
-        )
+        paste_mode = "not_configured"
+        logger.info("SUBSTACK_PUBLICATION_URL / SUBSTACK_COOKIE not set: sending the post to paste by hand")
     else:
         try:
             client = substack_client.SubstackClient(pub, cookie, proxy=proxy)
@@ -288,37 +340,54 @@ def main(argv: Optional[List[str]] = None) -> int:
     if failure:
         logger.warning("Draft NOT created: %s", failure.message)
 
-    # 6. Post file: CDN images on success, attachment filenames otherwise.
+    # 6. No draft: host the figures so the emailed post pastes with its images.
+    # (A draft already has them on Substack's CDN.)
+    hosted: Dict[str, str] = {}
+    host_error: Optional[str] = None
+    if draft is None:
+        hosted, host_error = _host_figures(figs, names, report_date)
+    unhosted = {url: name for url, name in names.items() if url not in hosted}
+
+    # 7. Post file: CDN images on success; otherwise hosted URLs, or attachment filenames
+    # for figures that could not be hosted.
     if draft is not None:
         post_md = md_cdn
     else:
-        post_md = render.render_markdown(post, keep, {url: (names[url], figs[url].credit_caption) for url in names})
+        post_md = render.render_markdown(
+            post, keep, {url: (hosted.get(url, names[url]), figs[url].credit_caption) for url in names}
+        )
     post_path = REPORTS_DIR / f"{report_date}{POST_SUFFIX}"
     post_path.write_text(post_md if post_md.endswith("\n") else post_md + "\n", encoding="utf-8")
     logger.info("Wrote %s", post_path)
 
-    # 7. Idempotency state (before the email, so a re-run never duplicates the draft).
+    # 8. Idempotency state (before the email, so a re-run never duplicates the draft).
     if draft is not None:
         draft_state.record_draft(drafts, report_date, draft, title or post.title)
         draft_state.save_drafts(drafts, DRAFTS_STATE_PATH)
         logger.info("State updated")
 
-    # 8. Email (best effort).
+    # 9. Email (best effort). Only figures that could not be hosted are attached.
     if draft is not None:
         subject, html = notify.build_success_email(
             report_date, title or post.title, draft, keep, entries, verdicts, figs, verify
         )
         sent = _send(env, subject, html)
     else:
-        subject, html = notify.build_failure_email(
-            report_date, failure, post_md, keep, entries, verdicts, figs, verify, attachment_names=names
-        )
-        attachments = [attachment_from_path(figs[url].path, name) for url, name in names.items()]
-        sent = _send(env, subject, html, attachments)
+        extra = dict(attachment_names=unhosted, hosting_error=host_error)
+        if failure is None:
+            subject, html = notify.build_paste_email(report_date, post_md, keep, entries, verdicts, figs, verify, **extra)
+        else:
+            subject, html = notify.build_failure_email(
+                report_date, failure, post_md, keep, entries, verdicts, figs, verify, **extra
+            )
+        sent = _send(env, subject, html, _attachments(figs, unhosted) or None)
 
     shutil.rmtree(figdir, ignore_errors=True)
 
-    outcome = ("updated" if not draft.created else "created") if draft is not None else f"failed({failure.kind})"
+    if draft is not None:
+        outcome = "updated" if not draft.created else "created"
+    else:
+        outcome = f"paste({paste_mode})" if failure is None else f"failed({failure.kind})"
     _log_summary(report_date, entries, keep, figs, verify, outcome, sent)
     return 1 if unexpected else 0
 
