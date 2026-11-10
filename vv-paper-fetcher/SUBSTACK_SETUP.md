@@ -157,6 +157,13 @@ Two changes can reduce or remove it. Ask Claude to build one:
   `substack_post.style_example` in `config.yaml` (now
   `reports/2026-09-07-substack-post-ste100.md`). When you publish a post you
   like better, point this setting at it.
+- **Paper limit.** A post has at most 15 papers. When more pass the filter,
+  the post keeps the ones from the most trusted institutions, then the ones
+  with the highest author h-index. The email lists the cut papers under "Not
+  included", so you can swap one in by hand. To change the limit, edit
+  `substack_post.max_papers` in `config.yaml` (`0` means no limit). To change
+  the trusted institutions, edit the `tier1` and `tier2` lists under
+  `substack_post.trusted_institutions`.
 - **Local runs.** `write_post.py` without `--dry-run` sends the email and
   pushes the figures to the `figures` branch, so your Mac needs push access
   to the repo. For drafts, add `SUBSTACK_PUBLICATION_URL`, `SUBSTACK_COOKIE`,

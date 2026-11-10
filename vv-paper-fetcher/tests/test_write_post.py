@@ -1,13 +1,16 @@
 """Orchestrator tests for write_post.py with every pipeline stage faked.
 
-write_post.py imports the input/writing/Substack modules and figure_host
-(which pushes figures to the public `figures` branch), which land in
-separate PRs; until they are all present this module is skipped.
-figure_host.publish_figures is always faked: these tests never push.
+write_post.py imports the input/writing/Substack modules, figure_host
+(which pushes figures to the public `figures` branch), and affiliations
+(institution lookup for the paper limit), which land in separate PRs; until
+they are all present this module is skipped.
+figure_host.publish_figures and affiliations.lookup_affiliations are always
+faked: these tests never push and never call an LLM.
 """
 import base64
 import importlib
 import json
+import logging
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -25,6 +28,7 @@ _DEPENDENCIES = [
         "prosemirror",
         "substack_client",
         "figure_host",
+        "affiliations",
     )
 ]
 for _name in _DEPENDENCIES:
@@ -171,6 +175,8 @@ def pipe(tmp_path, monkeypatch):
         writer_raises=None,
         host_raises=None,  # exception raised by figure_host.publish_figures
         host_skip=set(),  # paper URLs publish_figures leaves out of its result
+        tiers={},  # paper URL -> institution tier returned by the affiliations lookup (default 0)
+        lookup_raises=None,  # exception raised by affiliations.lookup_affiliations
     )
 
     FakeSubstackClient.instances = []
@@ -215,6 +221,7 @@ def pipe(tmp_path, monkeypatch):
         return {url: 0 for url in captions_by_url}
 
     def fetch_main_figures(entries, details, out_dir, choose=None, session=None):
+        record("fetch_main_figures", [e.url for e in entries])
         p.figdir = Path(out_dir)
         assert choose is not None
         choose({e.url: ["Figure 1: Overview."] for e in entries})
@@ -264,6 +271,21 @@ def pipe(tmp_path, monkeypatch):
         p.emails.append(SimpleNamespace(subject=subject, html=html_body, attachments=attachments))
         return True
 
+    def lookup_affiliations(client, model, entries, details, trusted, session=None):
+        record("lookup_affiliations", model, [e.url for e in entries], sorted(details), trusted)
+        if p.lookup_raises is not None:
+            raise p.lookup_raises
+        return {
+            e.url: SimpleNamespace(
+                url=e.url,
+                institutions=[f"Inst {e.rank}"],
+                matched=[f"Inst {e.rank}"] if p.tiers.get(e.url) else [],
+                tier=p.tiers.get(e.url, 0),
+                source="html",
+            )
+            for e in entries
+        }
+
     def publish_figures(files, report_date, repo_dir, **kwargs):
         record("publish_figures", dict(files), report_date, repo_dir)
         for path, _name in files.values():
@@ -292,6 +314,7 @@ def pipe(tmp_path, monkeypatch):
     monkeypatch.setattr(write_post.prosemirror, "markdown_to_doc", markdown_to_doc)
     monkeypatch.setattr(write_post.substack_client, "SubstackClient", FakeSubstackClient)
     monkeypatch.setattr(write_post.figure_host, "publish_figures", publish_figures)
+    monkeypatch.setattr(write_post.affiliations, "lookup_affiliations", lookup_affiliations)
     return p
 
 
@@ -369,6 +392,8 @@ def test_success_creates_draft_writes_cdn_post_and_state(pipe):
     assert "not openly licensed" in email.html
     assert pipe.figdir is not None and not pipe.figdir.exists()  # temp figures cleaned up
     assert "publish_figures" not in pipe.calls  # the draft has Substack-hosted images already
+    assert "lookup_affiliations" not in pipe.calls  # within the paper limit: no institution lookup
+    assert "Not included" not in email.html and "Institutions" not in email.html
 
 
 def test_already_drafted_skips_without_email(pipe):
@@ -676,3 +701,158 @@ def test_real_render_paste_email_glue(pipe, monkeypatch):
     assert "<em>Figure 1 from “Paper 1 &lt;T&amp;C&gt;” (arXiv:2609.00001)</em>" in block
     paper_link = f'<a href="{ENTRIES[0].url}" style="color:#1a56db"><strong>Paper 1 &lt;T&amp;C&gt;</strong></a>'
     assert f"{paper_link} — Body for 1." in block
+
+
+# --------------------------------------------------------------------------- paper limit
+
+TRUSTED = {"tier1": ["Massachusetts Institute of Technology (MIT)"], "tier2": ["Mila"]}
+DROPPED_RANKS = (4, 11)  # the filter drops these, so 18 of the 20 papers pass
+CAP_H_INDEX = {2: None, 3: 1, 5: 2, 20: None}  # every other paper: 50
+# By tier (#20 is tier 1, #19 tier 2), then h-index: #5, #3 and #2 are cut, in that order.
+CAP_SELECTED = [1, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+
+
+def _cap_week(pipe, config=None):
+    """20 papers, 18 of which pass the filter; returns {rank: entry}."""
+    entries = [_entry(r, f"2609.{r:05d}") for r in range(1, 21)]
+    for e in entries:
+        e.max_h_index = CAP_H_INDEX.get(e.rank, 50)
+    by_rank = {e.rank: e for e in entries}
+    pipe.entries = entries
+    pipe.keep_urls = {e.url for e in entries if e.rank not in DROPPED_RANKS}
+    pipe.no_figure_urls = set()
+    pipe.tiers = {by_rank[20].url: 1, by_rank[19].url: 2}
+    pipe.config = {"substack_post": {"max_papers": 15, "trusted_institutions": TRUSTED}} if config is None else config
+    return by_rank
+
+
+def _urls(by_rank, ranks):
+    return [by_rank[r].url for r in ranks]
+
+
+def _written_urls(pipe):
+    return pipe.calls["write_post"][0][0][1]
+
+
+def test_cap_keeps_15_of_18_by_tier_then_h_index(pipe, caplog):
+    caplog.set_level(logging.INFO, logger="write_post")
+    by_rank = _cap_week(pipe)
+    assert write_post.main([]) == 0
+
+    # One lookup, for the papers that passed the filter only, with the writer model and the config lists.
+    (((model, urls, detail_urls, trusted), _kw),) = pipe.calls["lookup_affiliations"]
+    passed_ranks = [r for r in range(1, 21) if r not in DROPPED_RANKS]
+    assert model == "writer/model"
+    assert urls == _urls(by_rank, passed_ranks)
+    assert set(detail_urls) >= set(urls)
+    assert trusted == TRUSTED
+
+    # Figures, licenses and the writer get exactly the 15 selected papers, in report order.
+    selected = _urls(by_rank, CAP_SELECTED)
+    assert pipe.calls["fetch_main_figures"][0][0][0] == selected
+    assert pipe.calls["fetch_licenses"][0][0][0] == selected
+    assert _written_urls(pipe) == selected
+    (client,) = FakeSubstackClient.instances
+    assert client.created[0][0] == "15 Ways to Check AI"
+    assert len(client.uploads) == 15
+    post_md = pipe.post_path.read_text(encoding="utf-8")
+    assert all(f"]({by_rank[r].url})" not in post_md for r in (2, 3, 5))
+
+    (email,) = pipe.emails
+    html = email.html
+    assert "<strong>18</strong> of <strong>20</strong> papers" in html and "the <strong>15</strong> best are in the post" in html
+    assert "Institutions: Inst 20 (tier 1)" in html and "Institutions: Inst 19 (tier 2)" in html
+    assert "Not included: over the 15-paper limit (3)" in html
+    cut_section = html.split("Not included", 1)[1]
+    assert cut_section.index("Paper 5 &lt;") < cut_section.index("Paper 3 &lt;") < cut_section.index("Paper 2 &lt;")
+    assert "Filter: rationale 5" in cut_section
+
+    assert "Selected 15 of 18 KEEP papers (cap 15); cut: #5 " in caplog.text
+    assert "keep=18 selected=15 figures=15/15" in caplog.text
+
+
+def test_within_cap_skips_the_lookup(pipe, caplog):
+    caplog.set_level(logging.INFO, logger="write_post")
+    pipe.entries = [_entry(r, f"2609.{r:05d}") for r in range(1, 11)]
+    pipe.keep_urls = {e.url for e in pipe.entries}
+    pipe.no_figure_urls = set()
+    pipe.config = {"substack_post": {"max_papers": 15, "trusted_institutions": TRUSTED}}
+    assert write_post.main([]) == 0
+
+    assert "lookup_affiliations" not in pipe.calls
+    assert _written_urls(pipe) == [e.url for e in pipe.entries]
+    (email,) = pipe.emails
+    assert "Kept <strong>10</strong> of <strong>10</strong>" in email.html
+    assert "Not included" not in email.html and "Institutions" not in email.html
+    assert "keep=10 selected=10" in caplog.text
+
+
+def test_lookup_failure_falls_back_to_h_index_then_rank(pipe, caplog):
+    caplog.set_level(logging.INFO, logger="write_post")
+    by_rank = _cap_week(pipe)
+    pipe.lookup_raises = RuntimeError("OpenRouter down")
+    assert write_post.main([]) == 0
+
+    assert len(pipe.calls["lookup_affiliations"]) == 1
+    assert "Institution lookup failed (OpenRouter down)" in caplog.text
+    # Without tiers, #20 (h-index unknown) loses to #5 (h-index 2).
+    assert _written_urls(pipe) == _urls(by_rank, [1, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 17, 18, 19])
+    (email,) = pipe.emails
+    assert "Not included: over the 15-paper limit (3)" in email.html
+    assert "Institutions: not looked up" in email.html and "Institutions: Inst" not in email.html
+    cut_section = email.html.split("Not included", 1)[1]
+    assert cut_section.index("Paper 3 &lt;") < cut_section.index("Paper 2 &lt;") < cut_section.index("Paper 20 &lt;")
+
+
+def test_config_without_cap_keys_uses_defaults(pipe):
+    by_rank = _cap_week(pipe, config={"substack_post": {"style_example": None}})
+    assert write_post.main([]) == 0
+    (((_model, _urls_, _details, trusted), _kw),) = pipe.calls["lookup_affiliations"]
+    assert trusted == {"tier1": [], "tier2": []}
+    assert _written_urls(pipe) == _urls(by_rank, CAP_SELECTED)
+
+
+def test_max_papers_zero_means_no_cap(pipe):
+    by_rank = _cap_week(pipe, config={"substack_post": {"max_papers": 0, "trusted_institutions": TRUSTED}})
+    assert write_post.main([]) == 0
+    assert "lookup_affiliations" not in pipe.calls
+    assert _written_urls(pipe) == _urls(by_rank, [r for r in range(1, 21) if r not in DROPPED_RANKS])
+
+
+def test_writer_failure_email_lists_cut_papers(pipe):
+    _cap_week(pipe)
+    pipe.writer_raises = _writer_error("boom")
+    assert write_post.main([]) == 1
+    (email,) = pipe.emails
+    assert "Papers picked for the post (15)" in email.html
+    assert "Not included: over the 15-paper limit (3)" in email.html
+
+
+def test_dry_run_with_cap_sends_nothing(pipe, capsys, caplog):
+    caplog.set_level(logging.INFO, logger="write_post")
+    _cap_week(pipe)
+    assert write_post.main(["--dry-run"]) == 0
+    assert capsys.readouterr().out.startswith("# 15 Ways to Check AI")
+    assert pipe.emails == []
+    assert "keep=18 selected=15" in caplog.text
+
+
+def test_paper_cap_settings(caplog):
+    defaults = (15, {"tier1": [], "tier2": []})
+    assert write_post.paper_cap_settings({}) == defaults
+    assert write_post.paper_cap_settings({"substack_post": None}) == defaults
+    assert write_post.paper_cap_settings({"substack_post": {"max_papers": None, "trusted_institutions": None}}) == defaults
+    assert write_post.paper_cap_settings({"substack_post": {"max_papers": "lots"}}) == defaults
+    assert "max_papers is not a number" in caplog.text
+    assert write_post.paper_cap_settings(
+        {"substack_post": {"max_papers": "8", "trusted_institutions": {"tier1": ["MIT", " "], "tier2": "Mila"}}}
+    ) == (8, {"tier1": ["MIT"], "tier2": ["Mila"]})
+
+
+def test_committed_config_has_the_cap_and_institution_lists():
+    max_papers, trusted = write_post.paper_cap_settings(importlib.import_module("src.config").load_config())
+    assert max_papers == 15
+    assert "Anthropic" in trusted["tier1"] and "University of California, Berkeley" in trusted["tier1"]
+    assert "Hugging Face" in trusted["tier2"] and "University of Tübingen" in trusted["tier2"]
+    assert len(trusted["tier1"]) == 35 and len(trusted["tier2"]) == 31
+    assert not set(trusted["tier1"]) & set(trusted["tier2"])

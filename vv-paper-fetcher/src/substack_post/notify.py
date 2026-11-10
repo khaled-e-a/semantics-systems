@@ -15,6 +15,11 @@ In the paste-ready post, figures are <img> tags that point at public copies
 survive copy-paste. A figure that could not be hosted is attached to the
 email instead, and the post shows a "figure attached" note in its place.
 
+When the paper limit (config substack_post.max_papers) cut some papers that
+passed the filter, the review facts show each post paper's institutions and
+tier, and a "Not included" list of the cut papers. Both sit below the post,
+never between the copy markers.
+
 The HTML is deliberately plain and inline-styled (email clients handle
 <style> blocks inconsistently). Every piece of text goes through
 html.escape(), and links are only emitted for http(s) URLs.
@@ -25,10 +30,11 @@ import html
 import re
 from dataclasses import dataclass
 from pathlib import PurePosixPath
-from typing import List, Mapping, Optional, Sequence, Tuple
+from typing import Any, List, Mapping, Optional, Sequence, Tuple
 
 from .models import DigestEntry, DraftResult, Figure, Verdict, VerifyResult
 from .prosemirror import split_title
+from .selection import tier_of
 
 # Failure kinds, in the order write_post.py checks for them. Secrets that are
 # simply unset (or --skip-substack) are not a failure: they get the paste email.
@@ -227,6 +233,22 @@ def _drop_section(all_entries: Sequence[DigestEntry], verdicts: Mapping[str, Ver
     )
 
 
+_MAX_INSTITUTIONS_SHOWN = 6
+
+
+def _institutions_text(affiliation: Any) -> str:
+    """'Institutions: MIT, Google DeepMind (tier 1)' for one paper's affiliations lookup (escaped)."""
+    names = [str(n) for n in (getattr(affiliation, "institutions", None) or []) if str(n).strip()]
+    tier = tier_of(affiliation)
+    tier_label = f"tier {tier}" if tier else "not on the trusted list"
+    if not names:
+        return _e("Institutions: not found" + (f" ({tier_label})" if tier else ""))
+    shown = ", ".join(names[:_MAX_INSTITUTIONS_SHOWN])
+    if len(names) > _MAX_INSTITUTIONS_SHOWN:
+        shown += f", +{len(names) - _MAX_INSTITUTIONS_SHOWN} more"
+    return _e(f"Institutions: {shown} ({tier_label})")
+
+
 def _papers_section(
     keep_entries: Sequence[DigestEntry],
     verdicts: Mapping[str, Verdict],
@@ -234,6 +256,7 @@ def _papers_section(
     attachment_names: Optional[Mapping[str, str]] = None,
     heading: str = "Papers in the post",
     hosted_urls: Optional[Mapping[str, str]] = None,
+    affiliations: Optional[Mapping[str, Any]] = None,
 ) -> str:
     items = []
     for e in keep_entries:
@@ -253,16 +276,59 @@ def _papers_section(
             if not fig.openly_licensed:
                 flags.append("Figure not openly licensed — check the paper's license before publishing.")
         line = f"{_a(e.url, f'<strong>{_e(e.title)}</strong>')}<br><span style=\"{_MUTED}\">{' · '.join(facts)}</span>"
+        if affiliations and e.url in affiliations:
+            line += f'<br><span style="{_MUTED}">{_institutions_text(affiliations[e.url])}</span>'
         for flag in flags:
             line += f'<br><span style="color:#b45309;font-size:13px;font-weight:600">{_e(flag)}</span>'
         items.append(line)
     return _section_title(f"{heading} ({len(keep_entries)})") + _ul(items)
 
 
-def _kept_line(report_date: str, keep_count: int, total: int) -> str:
+def _cut_section(
+    cut_entries: Sequence[DigestEntry],
+    limit: int,
+    verdicts: Mapping[str, Verdict],
+    affiliations: Optional[Mapping[str, Any]] = None,
+) -> str:
+    """KEEP papers left out by the paper limit, best first, so one can be swapped in by hand."""
+    if not cut_entries:
+        return ""
+    affiliations = affiliations or {}
+    items = []
+    for e in cut_entries:
+        facts = [  # each already escaped
+            _institutions_text(affiliations[e.url]) if e.url in affiliations else "Institutions: not looked up",
+            f"max author h-index {e.max_h_index}" if e.max_h_index is not None else "author h-index unknown",
+            f"#{e.rank} in the digest",
+        ]
+        verdict = verdicts.get(e.url)
+        rationale = verdict.rationale if verdict and verdict.rationale else "no rationale returned"
+        items.append(
+            f"{_a(e.url, f'<strong>{_e(e.title)}</strong>')}"
+            f'<br><span style="{_MUTED}">{" · ".join(facts)}</span>'
+            f'<br><span style="{_MUTED}">Filter: {_e(rationale)}</span>'
+        )
+    intro = (
+        f'<p style="margin:0 0 8px">These papers passed the filter, but the post has a limit of {limit} papers. '
+        "The cut is by institution tier, then author h-index. They are listed best first. "
+        "To use one, swap it into the post by hand.</p>"
+    )
+    return _section_title(f"Not included: over the {limit}-paper limit ({len(cut_entries)})") + intro + _ul(items)
+
+
+def _kept_line(
+    report_date: str, keep_count: int, total: int, passed: Optional[int] = None, in_post: bool = True
+) -> str:
+    """'Kept 2 of 3 papers ...', or, when the paper limit cut some, '21 of 30 passed; the 15 best are in the post'."""
+    if passed is None or passed <= keep_count:
+        return (
+            f'<p style="margin:0 0 8px">Kept <strong>{keep_count}</strong> of <strong>{total}</strong> '
+            f"papers from the {_e(report_date)} digest.</p>"
+        )
+    where = "are in the post" if in_post else "were picked for the post"
     return (
-        f'<p style="margin:0 0 8px">Kept <strong>{keep_count}</strong> of <strong>{total}</strong> '
-        f"papers from the {_e(report_date)} digest.</p>"
+        f'<p style="margin:0 0 8px"><strong>{passed}</strong> of <strong>{total}</strong> papers from the '
+        f"{_e(report_date)} digest passed the filter; the <strong>{keep_count}</strong> best {where}.</p>"
     )
 
 
@@ -305,11 +371,14 @@ def _paste_ready_post(
     verify: VerifyResult,
     attachment_names: Optional[Mapping[str, str]],
     hosting_error: Optional[str],
+    cut_entries: Sequence[DigestEntry] = (),
+    affiliations: Optional[Mapping[str, Any]] = None,
 ) -> List[str]:
     """Instructions, the title, the post body between copy markers, then the review facts.
 
     Only the post body sits between the markers, so a select-and-copy picks up
-    nothing else. Everything to check before publishing comes after them.
+    nothing else. Everything to check before publishing comes after them,
+    including the papers cut by the paper limit.
     """
     title, body = split_title(post_markdown)
     parts = [f'<p style="margin:0 0 12px;font-weight:600">{_e(PASTE_INSTRUCTIONS)}</p>']
@@ -331,8 +400,9 @@ def _paste_ready_post(
         markdown_to_html(body),
         _RULE.format(margin="20px 0 4px"),
         f'<p style="margin:0 0 24px;{_MARKER_STYLE}">{_e(COPY_END)}</p>',
-        _kept_line(report_date, len(keep_entries), len(all_entries)),
-        _papers_section(keep_entries, verdicts, figs, attachment_names),
+        _kept_line(report_date, len(keep_entries), len(all_entries), len(keep_entries) + len(cut_entries)),
+        _papers_section(keep_entries, verdicts, figs, attachment_names, affiliations=affiliations),
+        _cut_section(cut_entries, len(keep_entries), verdicts, affiliations),
         _verify_errors_block(verify),
         _verify_warnings_block(verify),
         _drop_section(all_entries, verdicts),
@@ -350,16 +420,21 @@ def build_paste_email(
     verify: VerifyResult,
     attachment_names: Optional[Mapping[str, str]] = None,
     hosting_error: Optional[str] = None,
+    cut_entries: Sequence[DigestEntry] = (),
+    affiliations: Optional[Mapping[str, Any]] = None,
 ) -> Tuple[str, str]:
     """Substack is not set up (or --skip-substack): the post, ready to paste by hand.
 
     ``post_markdown`` has hosted http(s) image srcs, or attachment filenames for
     figures that could not be hosted (listed in ``attachment_names``).
+    ``cut_entries`` passed the filter but were left out by the paper limit;
+    ``affiliations`` (paper URL -> affiliations.Affiliations) is set only when the limit applied.
     """
     title, _ = split_title(post_markdown)
     subject = f"Substack post ready to paste: {title or report_date}"
     parts = _paste_ready_post(
-        report_date, post_markdown, keep_entries, all_entries, verdicts, figs, verify, attachment_names, hosting_error
+        report_date, post_markdown, keep_entries, all_entries, verdicts, figs, verify, attachment_names, hosting_error,
+        cut_entries, affiliations,
     )
     parts.append(f'<p style="{_MUTED};margin:24px 0 0">{_e(SETUP_NOTE)}</p>')
     return subject, _page("\n".join(p for p in parts if p))
@@ -379,6 +454,8 @@ def build_success_email(
     verdicts: Mapping[str, Verdict],
     figs: Mapping[str, Figure],
     verify: VerifyResult,
+    cut_entries: Sequence[DigestEntry] = (),
+    affiliations: Optional[Mapping[str, Any]] = None,
 ) -> Tuple[str, str]:
     subject = f"Substack draft ready: {post_title}"
     action = "created" if draft.created else "updated (existing draft, --force)"
@@ -390,8 +467,9 @@ def build_success_email(
         'background:#ff6719;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;font-size:17px">'
         "Open the draft in the Substack editor</a></p>",
         f'<p style="{_MUTED};margin:0 0 16px">{_a(draft.edit_url, _e(draft.edit_url))}</p>',
-        _kept_line(report_date, len(keep_entries), len(all_entries)),
-        _papers_section(keep_entries, verdicts, figs),
+        _kept_line(report_date, len(keep_entries), len(all_entries), len(keep_entries) + len(cut_entries)),
+        _papers_section(keep_entries, verdicts, figs, affiliations=affiliations),
+        _cut_section(cut_entries, len(keep_entries), verdicts, affiliations),
         _verify_warnings_block(verify),
         _drop_section(all_entries, verdicts),
     ]
@@ -472,6 +550,8 @@ def build_failure_email(
     verify: VerifyResult,
     attachment_names: Optional[Mapping[str, str]] = None,
     hosting_error: Optional[str] = None,
+    cut_entries: Sequence[DigestEntry] = (),
+    affiliations: Optional[Mapping[str, Any]] = None,
 ) -> Tuple[str, str]:
     """Substack is configured but refused or failed: the reason and fixes, then the paste-ready post."""
     subject = f"Substack draft NOT created — {report_date}"
@@ -487,7 +567,8 @@ def build_failure_email(
         f'<p style="{_MUTED};margin:0 0 8px">Substack draft post for the {_e(report_date)} digest.</p>',
         reason_box,
     ] + _paste_ready_post(
-        report_date, post_markdown, keep_entries, all_entries, verdicts, figs, verify, attachment_names, hosting_error
+        report_date, post_markdown, keep_entries, all_entries, verdicts, figs, verify, attachment_names, hosting_error,
+        cut_entries, affiliations,
     )
     return subject, _page("\n".join(p for p in parts if p))
 
@@ -502,6 +583,8 @@ def build_writer_failure_email(
     attachment_names: Optional[Mapping[str, str]] = None,
     hosted_urls: Optional[Mapping[str, str]] = None,
     hosting_error: Optional[str] = None,
+    cut_entries: Sequence[DigestEntry] = (),
+    affiliations: Optional[Mapping[str, Any]] = None,
 ) -> Tuple[str, str]:
     """The LLM never produced a usable post: no draft, no post file.
 
@@ -531,10 +614,19 @@ def build_writer_failure_email(
         f'<p style="{_MUTED};margin:0 0 8px">Substack draft post for the {_e(report_date)} digest.</p>',
         reason_box,
         _hosting_failed_note(hosting_error, in_post=False) if hosting_error else "",
-        _kept_line(report_date, len(keep_entries), len(all_entries)),
-        _papers_section(
-            keep_entries, verdicts, figs, attachment_names, heading="Papers that passed the filter", hosted_urls=hosted_urls
+        _kept_line(
+            report_date, len(keep_entries), len(all_entries), len(keep_entries) + len(cut_entries), in_post=False
         ),
+        _papers_section(
+            keep_entries,
+            verdicts,
+            figs,
+            attachment_names,
+            heading="Papers picked for the post" if cut_entries else "Papers that passed the filter",
+            hosted_urls=hosted_urls,
+            affiliations=affiliations,
+        ),
+        _cut_section(cut_entries, len(keep_entries), verdicts, affiliations),
         _drop_section(all_entries, verdicts),
     ]
     return subject, _page("\n".join(p for p in parts if p))
