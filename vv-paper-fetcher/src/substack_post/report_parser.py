@@ -2,8 +2,9 @@
 
 The report is rendered by templates/report.md.j2. We read only what the
 Substack pipeline needs: the ranked "### N. [Title](url)" blocks with their
-"Venue / source", "Summary" and "Tags" bullets, then the "## Honorable
-mentions" bullets. A "## Quiet week" report has no papers and yields [].
+"Venue / source", "Reputation" (max author h-index only), "Summary" and
+"Tags" bullets, then the "## Honorable mentions" bullets. A "## Quiet week"
+report has no papers and yields [].
 
 Author lines are ignored on purpose: the post must not name authors, and the
 full author list (for the verify step) comes from arXiv, not the digest.
@@ -33,6 +34,8 @@ _HONORABLE_RE = re.compile(r"^-\s+\[(?P<title>.*)\]\((?P<url>\S+)\)(?:\s+—\s*(
 _FIELD_RE = re.compile(r"^-\s+\*\*(?P<name>[^*]+?):\*\*\s*(?P<value>.*)$")
 # Trailing "(arxiv, hf_papers)" sources group on the "Venue / source" line.
 _SOURCES_SUFFIX_RE = re.compile(r"\s*\([^()]*\)\s*$")
+# "- **Reputation:** max author h-index 82, paper citations 0"
+_H_INDEX_RE = re.compile(r"max author h-index\s+(?P<h>\d+)", re.IGNORECASE)
 
 _ARXIV_ID = r"(?P<id>\d{4}\.\d{4,5})(?P<ver>v\d+)?"
 _ARXIV_URL_RE = re.compile(
@@ -109,7 +112,11 @@ def _apply_field(entry: DigestEntry, name: str, value: str) -> Optional[str]:
     if key == "tags":
         entry.tags = [t.strip() for t in value.split(",") if t.strip()]
         return None
-    return None  # Authors, Reputation, ... are not needed
+    if key == "reputation":
+        m = _H_INDEX_RE.search(value)
+        entry.max_h_index = int(m.group("h")) if m else None
+        return None
+    return None  # Authors, ... are not needed
 
 
 def parse_report(path: Path) -> List[DigestEntry]:

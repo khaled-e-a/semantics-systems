@@ -106,3 +106,80 @@ substack_post:
   # newest reports/*-substack-post-ste100.md is used, which soon becomes the
   # pipeline's own unreviewed output, so the style would drift.
   style_example: reports/2026-09-07-substack-post-ste100.md
+  # Cap per post. When more papers pass the filter, the extra ones are cut by
+  # institution tier, then author h-index (0 = no cap). The email lists the
+  # cut papers, so you can swap one in by hand.
+  max_papers: 15
+  # Institutions the cap prefers. They are matched by meaning, so aliases and
+  # sub-units count (e.g. "MIT CSAIL" matches MIT). Papers from neither list
+  # come last. These lists are an editable starting point: add or remove
+  # names freely.
+  trusted_institutions:
+    tier1:
+      - Massachusetts Institute of Technology (MIT)
+      - Stanford University
+      - Carnegie Mellon University
+      - "University of California, Berkeley"
+      - Princeton University
+      - Harvard University
+      - California Institute of Technology
+      - Cornell University
+      - University of Oxford
+      - University of Cambridge
+      - ETH Zurich
+      - EPFL
+      - University of Toronto
+      - University of Washington
+      - University of Illinois Urbana-Champaign
+      - Tsinghua University
+      - Max Planck Institutes
+      - Google DeepMind
+      - Google Research
+      - OpenAI
+      - Anthropic
+      - Microsoft Research
+      - Meta FAIR
+      - Apple Machine Learning Research
+      - NVIDIA Research
+      - IBM Research
+      - Allen Institute for AI
+      - NIST
+      - Sandia National Laboratories
+      - Lawrence Livermore National Laboratory
+      - Los Alamos National Laboratory
+      - Oak Ridge National Laboratory
+      - Argonne National Laboratory
+      - The Alan Turing Institute
+      - UK AI Security Institute
+    tier2:
+      - Columbia University
+      - Yale University
+      - New York University
+      - UCLA
+      - UC San Diego
+      - University of Michigan
+      - Georgia Tech
+      - University of Texas at Austin
+      - University of Maryland
+      - University of Pennsylvania
+      - Johns Hopkins University
+      - Imperial College London
+      - University College London
+      - University of Edinburgh
+      - Technical University of Munich
+      - University of Tübingen
+      - Mila
+      - Vector Institute
+      - Peking University
+      - Shanghai Jiao Tong University
+      - Zhejiang University
+      - National University of Singapore
+      - Nanyang Technological University
+      - KAIST
+      - University of Tokyo
+      - Technion
+      - Weizmann Institute of Science
+      - Inria
+      - Amazon Science
+      - Salesforce Research
+      - Hugging Face

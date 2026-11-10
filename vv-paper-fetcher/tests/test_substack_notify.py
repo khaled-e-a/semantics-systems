@@ -1,4 +1,5 @@
 from pathlib import Path
+from types import SimpleNamespace
 
 from src.substack_post import notify
 from src.substack_post.models import DigestEntry, DraftResult, Figure, Verdict, VerifyResult
@@ -324,3 +325,100 @@ def test_only_unhosted_figures_are_marked_attached():
         assert block.count("figure attached") == 1 and "<strong>fig-2609.00002.png</strong>" in block
         assert "attached as fig-2609.00002.png" in after and "attached as fig-2609.00001.png" not in after
         assert "no public URL for 1 of 2 figure(s)" in html
+
+
+# ---------------------------------------------------------------- paper limit (cut papers, institutions)
+
+D = DigestEntry(rank=4, section="top", title="Cut <Paper> D", url="http://arxiv.org/abs/2609.00004v1", arxiv_id="2609.00004", max_h_index=82)
+E = DigestEntry(rank=5, section="top", title="Cut Paper E", url="http://arxiv.org/abs/2609.00005v1", arxiv_id="2609.00005")
+CAP_ENTRIES = ENTRIES + [D, E]
+CAP_VERDICTS = {
+    **VERDICTS,
+    D.url: Verdict(D.url, True, "Proposes a <calibration> check.", "S", "uncertainty-quantification"),
+    E.url: Verdict(E.url, True, "Validates a simulator.", "S", "validation"),
+}
+
+
+def _aff(institutions, tier):
+    return SimpleNamespace(url="", institutions=institutions, matched=institutions[:1], tier=tier, source="html")
+
+
+CAP_AFFS = {
+    A.url: _aff(["MIT", "Google DeepMind"], 1),
+    B.url: _aff([], 0),
+    D.url: _aff(["Acme <Labs>"], 0),
+    E.url: _aff(["Stanford University", "Mila"], 2),
+}
+
+
+def test_paste_email_lists_cut_papers_and_institutions_outside_the_copy_block():
+    _, html = notify.build_paste_email(
+        DATE, HOSTED_MD, KEEP, CAP_ENTRIES, CAP_VERDICTS, FIGS, VerifyResult(),
+        cut_entries=[E, D], affiliations=CAP_AFFS,
+    )
+    before, block, after = _split_copy_block(html)
+    for text in ("Institutions", "Not included", "Cut Paper E", "h-index"):
+        assert text not in block and text not in before
+
+    assert (
+        "<strong>4</strong> of <strong>5</strong> papers from the 2026-09-28 digest passed the filter; "
+        "the <strong>2</strong> best are in the post." in after
+    )
+    assert "Kept <strong>" not in html
+    # per-paper facts for the papers in the post
+    assert "Institutions: MIT, Google DeepMind (tier 1)" in after
+    assert "Institutions: not found" in after  # B: lookup found nothing
+    # the cut papers, best first, after the papers in the post and before the dropped ones
+    assert "Not included: over the 2-paper limit (2)" in after
+    assert after.index("Papers in the post (2)") < after.index("Not included") < after.index("Dropped papers (1)")
+    assert after.index("Cut Paper E") < after.index("Cut &lt;Paper&gt; D")
+    assert '<a href="http://arxiv.org/abs/2609.00005v1" style="color:#1a56db"><strong>Cut Paper E</strong></a>' in after
+    assert "Institutions: Stanford University, Mila (tier 2) · author h-index unknown · #5 in the digest" in after
+    assert "Institutions: Acme &lt;Labs&gt; (not on the trusted list) · max author h-index 82 · #4 in the digest" in after
+    assert "Filter: Proposes a &lt;calibration&gt; check." in after and "Filter: Validates a simulator." in after
+    assert "swap it into the post by hand" in after
+    # cut papers passed the filter: they are not in the dropped list
+    dropped = after.split("Dropped papers", 1)[1]
+    assert "Cut Paper E" not in dropped and "Benchmark only" in dropped
+
+
+def test_success_and_failure_emails_list_cut_papers():
+    _, success = notify.build_success_email(
+        DATE, "T", DraftResult(101, EDIT_URL, True), KEEP, CAP_ENTRIES, CAP_VERDICTS, FIGS, VerifyResult(),
+        cut_entries=[D], affiliations=CAP_AFFS,
+    )
+    assert "Not included: over the 2-paper limit (1)" in success
+    assert "Institutions: MIT, Google DeepMind (tier 1)" in success
+    assert "the <strong>2</strong> best are in the post" in success
+
+    failure = notify.SubstackFailure(notify.AUTH_OR_BLOCK, "401")
+    _, failed = notify.build_failure_email(
+        DATE, failure, HOSTED_MD, KEEP, CAP_ENTRIES, CAP_VERDICTS, FIGS, VerifyResult(), cut_entries=[D], affiliations=CAP_AFFS
+    )
+    _, block, after = _split_copy_block(failed)
+    assert "Not included" in after and "Not included" not in block
+
+
+def test_writer_failure_email_lists_cut_papers():
+    _, html = notify.build_writer_failure_email(
+        DATE, "x", KEEP, CAP_ENTRIES, CAP_VERDICTS, FIGS, cut_entries=[D], affiliations=CAP_AFFS
+    )
+    assert "Papers picked for the post (2)" in html
+    assert "the <strong>2</strong> best were picked for the post" in html
+    assert "Not included: over the 2-paper limit (1)" in html
+
+
+def test_cut_paper_without_lookup_and_long_institution_list():
+    many = _aff([f"Uni {i}" for i in range(1, 9)], 1)
+    _, html = notify.build_success_email(
+        DATE, "T", DraftResult(101, EDIT_URL, True), KEEP, CAP_ENTRIES, CAP_VERDICTS, FIGS, VerifyResult(),
+        cut_entries=[D], affiliations={A.url: many},
+    )
+    assert "Institutions: Uni 1, Uni 2, Uni 3, Uni 4, Uni 5, Uni 6, +2 more (tier 1)" in html
+    assert "Institutions: not looked up · max author h-index 82" in html  # lookup failed: no affiliations
+
+
+def test_no_cut_means_no_institutions_or_cut_section():
+    _, html = notify.build_paste_email(DATE, HOSTED_MD, KEEP, ENTRIES, VERDICTS, FIGS, VerifyResult())
+    assert "Not included" not in html and "Institutions" not in html
+    assert "Kept <strong>2</strong> of <strong>3</strong>" in html

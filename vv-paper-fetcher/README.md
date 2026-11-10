@@ -92,7 +92,7 @@ hand (Actions → Substack Draft Post → Run workflow) with:
 
 | Outcome | Email |
 |---|---|
-| Draft created | "Substack draft ready: …" with the editor link, kept/total papers, each paper's contribution type and figure, figures that are not openly licensed, any checks that still fail, and the dropped papers with reasons. |
+| Draft created | "Substack draft ready: …" with the editor link, kept/total papers, each paper's contribution type and figure, figures that are not openly licensed, any checks that still fail, and the dropped papers with reasons. Over the [paper limit](#paper-limit), it also shows each paper's institutions and the papers that were cut. |
 | Substack not configured, or `--skip-substack` (paste mode) | "Substack post ready to paste: …" with the steps, the title, and the post body between copy markers, with the figures hosted on the `figures` branch. Below it, the same per-paper facts, failing checks, and dropped papers. |
 | Substack configured but failed (expired cookie, Cloudflare block, malformed secret, other error) | "Substack draft NOT created — DATE" with the reason and how to fix it, then the same paste-ready post with hosted images, so you can still publish by hand. |
 | Quiet week, or no paper passed the filter | "No Substack post this week — DATE" with the reasons papers were dropped. |
@@ -168,6 +168,23 @@ The writer imitates one earlier post. Set `substack_post.style_example` in
 a better one. If the key is unset, the newest
 `reports/*-substack-post-ste100.md` is used instead, but that soon becomes the
 pipeline's own unreviewed output, and the style would drift.
+
+### Paper limit
+
+A post has at most 15 papers. When more papers pass the filter, the run looks
+up each paper's institutions (from the arXiv HTML or PDF, with the same LLM).
+It keeps the papers from the most trusted institutions: tier 1 first, then
+tier 2, then the rest. Ties go to the higher author h-index from the digest,
+then to the higher digest rank. The post keeps the digest's order. The email
+shows each paper's institutions and tier, and lists the cut papers under "Not
+included", so you can swap one in by hand. If the lookup fails, the cut uses
+the h-index and rank only. With 15 papers or fewer, nothing is looked up.
+
+To change the limit, edit `substack_post.max_papers` in `config.yaml` (`0`
+means no limit). To change which institutions count as trusted, edit the
+`substack_post.trusted_institutions.tier1` and `tier2` lists. Names are matched
+by meaning, so aliases and sub-units count (for example, "MIT CSAIL" matches
+MIT).
 
 ## Testing
 

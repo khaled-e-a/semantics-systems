@@ -23,6 +23,7 @@ class DigestEntry:
     venue: str = ""
     digest_summary: str = ""  # empty for honorable mentions
     tags: List[str] = field(default_factory=list)
+    max_h_index: Optional[int] = None  # "Reputation" bullet of a top paper; None for honorable mentions
 
 
 @dataclass

@@ -9,6 +9,10 @@ the whole post ready to paste into Substack's editor, with the figures pushed
 to the repo's public `figures` branch so they paste as images. See README.md
 ("Substack draft post").
 
+A post has at most substack_post.max_papers papers (config.yaml, default 15).
+When more pass the filter, the extra ones are cut by institution tier
+(substack_post.trusted_institutions), then author h-index; the email lists them.
+
 Run `python write_post.py --dry-run --verbose` to print the post without
 touching Substack, email, the post file, or state.
 """
@@ -22,11 +26,12 @@ import sys
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 from src.config import PROJECT_ROOT, load_config, load_env_vars
 from src.email_sender import attachment_from_path, send_digest_email
 from src.substack_post import (
+    affiliations,
     draft_state,
     figure_host,
     figures,
@@ -36,13 +41,23 @@ from src.substack_post import (
     prosemirror,
     render,
     report_parser,
+    selection,
     substack_client,
     writer,
 )
-from src.substack_post.models import DigestEntry, DraftResult, Figure, PostDraft, UploadedImage, VerifyResult
+from src.substack_post.models import (
+    DigestEntry,
+    DraftResult,
+    Figure,
+    PaperDetails,
+    PostDraft,
+    UploadedImage,
+    VerifyResult,
+)
 
 REPORTS_DIR_NAME = "reports"
 POST_SUFFIX = "-substack-post-ste100.md"
+DEFAULT_MAX_PAPERS = 15  # config substack_post.max_papers
 
 # Module-level so tests can point them at tmp_path.
 REPORTS_DIR = PROJECT_ROOT / REPORTS_DIR_NAME
@@ -142,6 +157,70 @@ def load_style_example(config: Dict, report_date: str) -> Optional[str]:
         return None
 
 
+def paper_cap_settings(config: Dict) -> Tuple[int, Dict[str, List[str]]]:
+    """(max_papers, {"tier1": [...], "tier2": [...]}) from config's substack_post section.
+
+    Missing keys give the defaults: a cap of DEFAULT_MAX_PAPERS and empty tier lists.
+    """
+    settings = (config or {}).get("substack_post") or {}
+    raw_max = settings.get("max_papers")
+    max_papers = DEFAULT_MAX_PAPERS
+    if raw_max is not None:
+        try:
+            max_papers = int(raw_max)
+        except (TypeError, ValueError):
+            logger.warning("substack_post.max_papers is not a number (%r); using %d", raw_max, DEFAULT_MAX_PAPERS)
+    raw_trusted = settings.get("trusted_institutions") or {}
+    if not isinstance(raw_trusted, Mapping):
+        logger.warning("substack_post.trusted_institutions is not a mapping; ignoring it")
+        raw_trusted = {}
+    trusted: Dict[str, List[str]] = {"tier1": [], "tier2": []}
+    for tier, names in raw_trusted.items():
+        if isinstance(names, str):
+            names = [names]
+        trusted[str(tier)] = [str(n).strip() for n in (names or []) if str(n).strip()]
+    return max_papers, trusted
+
+
+def _describe(entry: DigestEntry, affs: Mapping[str, Any]) -> str:
+    h_index = "?" if entry.max_h_index is None else entry.max_h_index
+    return f"#{entry.rank} {entry.title!r} (tier {selection.tier_of(affs.get(entry.url))}, h-index {h_index})"
+
+
+def select_for_post(
+    llm: Any,
+    model: str,
+    passed: List[DigestEntry],
+    details: Mapping[str, PaperDetails],
+    max_papers: int,
+    trusted: Mapping[str, List[str]],
+) -> Tuple[List[DigestEntry], List[DigestEntry], Dict[str, Any]]:
+    """Apply the paper limit to the papers that passed the filter.
+
+    Returns (selected in report order, cut best first, {url: Affiliations}).
+    Within the limit nothing is looked up. If the institution lookup fails, the
+    cut uses author h-index and report rank only; it never fails the run.
+    """
+    if max_papers <= 0 or len(passed) <= max_papers:
+        return list(passed), [], {}
+    affs: Dict[str, Any] = {}
+    try:
+        affs = dict(affiliations.lookup_affiliations(llm, model, passed, details, trusted) or {})
+    except Exception as exc:  # noqa: BLE001 — a ranking aid only; fall back to h-index, then rank
+        logger.warning(
+            "Institution lookup failed (%s); cutting by author h-index, then report rank", exc, exc_info=True
+        )
+    selected, cut = selection.select_papers(passed, affs, max_papers)
+    logger.info(
+        "Selected %d of %d KEEP papers (cap %d); cut: %s",
+        len(selected),
+        len(passed),
+        max_papers,
+        "; ".join(_describe(e, affs) for e in cut),
+    )
+    return selected, cut, affs
+
+
 def _host_figures(
     figs: Dict[str, Figure], names: Dict[str, str], report_date: str
 ) -> Tuple[Dict[str, str], Optional[str]]:
@@ -193,7 +272,7 @@ def _quiet(env: Dict[str, str], dry_run: bool, report_date: str, entries: List[D
         logger.info("Dry run: would send %r", subject)
     else:
         sent = _send(env, subject, html)
-    _log_summary(report_date, entries, [], {}, VerifyResult(), "none(no post)", sent)
+    _log_summary(report_date, entries, [], [], {}, VerifyResult(), "none(no post)", sent)
     return 0
 
 
@@ -239,11 +318,17 @@ def main(argv: Optional[List[str]] = None) -> int:
     missing_verdicts = [e.url for e in entries if e.url not in verdicts]
     if missing_verdicts:
         logger.warning("No verdict for %d entries (treated as DROP): %s", len(missing_verdicts), missing_verdicts)
-    keep = [e for e in entries if e.url in verdicts and verdicts[e.url].keep]
-    logger.info("KEEP %d of %d", len(keep), len(entries))
-    if not keep:
+    passed = [e for e in entries if e.url in verdicts and verdicts[e.url].keep]
+    logger.info("KEEP %d of %d", len(passed), len(entries))
+    if not passed:
         logger.info("No paper passed the filter — no post")
         return _quiet(env, args.dry_run, report_date, entries, verdicts)
+
+    # 2b. Paper limit: over max_papers, keep the papers from the most trusted
+    # institutions (then highest author h-index). `keep` stays in report order.
+    max_papers, trusted = paper_cap_settings(config)
+    keep, cut, affs = select_for_post(llm, model, passed, details, max_papers, trusted)
+    cap_info = dict(cut_entries=cut, affiliations=affs)
 
     # 3. Licenses (email flags only) and main figures. Figure files live in a temp dir: never committed.
     paper_details.fetch_licenses(details, [e.url for e in keep])
@@ -251,7 +336,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     figs = figures.fetch_main_figures(
         keep, details, figdir, choose=lambda captions: writer.choose_figures(llm, model, captions)
     )
-    logger.info("Figures: %d of %d KEEP papers", len(figs), len(keep))
+    logger.info("Figures: %d of %d papers in the post", len(figs), len(keep))
 
     names = {e.url: attachment_name(e, figs[e.url]) for e in keep if e.url in figs}
 
@@ -276,6 +361,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                 attachment_names=unhosted,
                 hosted_urls=hosted,
                 hosting_error=host_error,
+                **cap_info,
             )
             _send(env, subject, html, _attachments(figs, unhosted) or None)
             shutil.rmtree(figdir, ignore_errors=True)
@@ -286,7 +372,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(render.render_markdown(post, keep, {url: (str(fig.path), fig.credit_caption) for url, fig in figs.items()}))
         logger.info("Dry run: figures in %s", figdir)
         logger.info("Dry run: verify errors=%s warnings=%s", verify.errors, verify.warnings)
-        _log_summary(report_date, entries, keep, figs, verify, "dry-run", None)
+        _log_summary(report_date, entries, passed, keep, figs, verify, "dry-run", None)
         return 0
 
     # 5. Substack draft. Without the Substack secrets (or with --skip-substack) this is
@@ -369,11 +455,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     # 9. Email (best effort). Only figures that could not be hosted are attached.
     if draft is not None:
         subject, html = notify.build_success_email(
-            report_date, title or post.title, draft, keep, entries, verdicts, figs, verify
+            report_date, title or post.title, draft, keep, entries, verdicts, figs, verify, **cap_info
         )
         sent = _send(env, subject, html)
     else:
-        extra = dict(attachment_names=unhosted, hosting_error=host_error)
+        extra = dict(attachment_names=unhosted, hosting_error=host_error, **cap_info)
         if failure is None:
             subject, html = notify.build_paste_email(report_date, post_md, keep, entries, verdicts, figs, verify, **extra)
         else:
@@ -388,27 +474,30 @@ def main(argv: Optional[List[str]] = None) -> int:
         outcome = "updated" if not draft.created else "created"
     else:
         outcome = f"paste({paste_mode})" if failure is None else f"failed({failure.kind})"
-    _log_summary(report_date, entries, keep, figs, verify, outcome, sent)
+    _log_summary(report_date, entries, passed, keep, figs, verify, outcome, sent)
     return 1 if unexpected else 0
 
 
 def _log_summary(
     report_date: str,
     entries: List[DigestEntry],
-    keep: List[DigestEntry],
+    passed: List[DigestEntry],
+    selected: List[DigestEntry],
     figs: Dict[str, Figure],
     verify: VerifyResult,
     substack: str,
     email_sent: Optional[bool],
 ) -> None:
+    """One greppable line. keep = passed the filter; selected = in the post (after the paper limit)."""
     logger.info(
-        "Run summary: date=%s entries=%d keep=%d figures=%d/%d verify_errors=%d verify_warnings=%d "
+        "Run summary: date=%s entries=%d keep=%d selected=%d figures=%d/%d verify_errors=%d verify_warnings=%d "
         "substack=%s email_sent=%s",
         report_date,
         len(entries),
-        len(keep),
+        len(passed),
+        len(selected),
         len(figs),
-        len(keep),
+        len(selected),
         len(verify.errors),
         len(verify.warnings),
         substack,

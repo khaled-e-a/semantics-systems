@@ -49,6 +49,9 @@ def test_parse_every_committed_digest(path):
         assert e.venue and not e.venue.endswith(")")
     for e in honorable:
         assert e.digest_summary == "" and e.tags == []
+        assert e.max_h_index is None
+    # every top paper's "Reputation" bullet gives its max author h-index
+    assert sum(isinstance(e.max_h_index, int) for e in top) == text.count("- **Reputation:** max author h-index ")
 
 
 def test_digest_2026_09_28_details():
@@ -72,6 +75,14 @@ def test_digest_2026_09_28_details():
     assert mention.url == "http://arxiv.org/abs/2609.30454v1"
     assert mention.venue == "cs.LG"
     assert entries[22].version == "v2"  # .../2609.27690v2
+
+
+def test_digest_2026_10_26_h_index():
+    entries = parse_report(REPORTS_DIR / "2026-10-26.md")
+    # "- **Reputation:** max author h-index 69, paper citations 0" under "### 1."
+    assert entries[0].title.startswith("FrontierCS 2")
+    assert [e.max_h_index for e in entries[:4]] == [69, 98, 92, 54]
+    assert all(e.max_h_index is None for e in entries if e.section == "honorable")
 
 
 def test_hugging_face_digest_ids():
@@ -105,7 +116,7 @@ def test_quiet_week_report_is_empty(tmp_path):
 
 EDGE_CASES = """# VV / UQ / Evals Paper Digest — 2026-10-01 to 2026-10-08
 
-## Top papers (2)
+## Top papers (3)
 
 ### 1. [$τ^τ$-Bench: A [Draft] Benchmark](http://arxiv.org/abs/2609.04611v1)
 
@@ -119,8 +130,14 @@ that wraps onto a second line.
 ### 2. [An OpenReview Paper](https://openreview.net/forum?id=AbC123)
 
 - **Venue / source:**  (dblp)
+- **Reputation:** max author h-index 0, paper citations 0 (unmatched in Semantic Scholar)
 - **Summary:** No arXiv id here.
 - **Tags:** formal-methods
+
+### 3. [No Reputation Line](http://arxiv.org/abs/2609.00003v1)
+
+- **Summary:** A top paper whose report has no "Reputation" bullet.
+- **Tags:** evals
 
 ## Honorable mentions
 
@@ -134,8 +151,8 @@ def test_edge_cases(tmp_path):
     path.write_text(EDGE_CASES, encoding="utf-8")
     entries = parse_report(path)
 
-    assert [e.rank for e in entries] == [1, 2, 3, 4]
-    tau, openreview, no_venue, with_venue = entries
+    assert [e.rank for e in entries] == [1, 2, 3, 4, 5]
+    tau, openreview, no_reputation, no_venue, with_venue = entries
     assert tau.title == "$τ^τ$-Bench: A [Draft] Benchmark"
     assert tau.venue == "ICLR 2027 (poster)"
     assert tau.digest_summary == "First line of a summary that wraps onto a second line."
@@ -144,6 +161,11 @@ def test_edge_cases(tmp_path):
     assert openreview.url == "https://openreview.net/forum?id=AbC123"
     assert (openreview.arxiv_id, openreview.version) == (None, None)
     assert openreview.venue == ""
+
+    assert tau.max_h_index == 3
+    assert openreview.max_h_index == 0  # "(unmatched in Semantic Scholar)": the report's number, as written
+    assert no_reputation.max_h_index is None
+    assert no_venue.max_h_index is None and with_venue.max_h_index is None
 
     assert no_venue.section == "honorable" and no_venue.venue == ""
     assert (no_venue.arxiv_id, no_venue.version) == ("2609.00001", "v3")
