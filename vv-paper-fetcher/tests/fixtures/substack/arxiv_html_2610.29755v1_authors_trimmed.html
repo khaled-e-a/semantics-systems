@@ -1,0 +1,121 @@
+<!DOCTYPE html><html lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>VeruSteer: Learning What to Repair Next in Verus</title>
+<!-- Trimmed from https://arxiv.org/html/2610.29755v1 (captured 2026-11-10): front matter only (title, pubnotes, div.ltx_authors with ten authors whose structured ltx_affiliation_* spans repeat, ORCID links and mailto emails; the ORCID logo SVG paths are emptied); the abstract is shortened and the body cut. -->
+</head>
+<body>
+<div class="ltx_page_main">
+<div class="ltx_page_content">
+<article class="ltx_document">
+<div class="ltx_para" id="p1"><span class="ltx_ERROR undefined" id="p1.1">\correspondingauthor</span>
+</div>
+<h1 class="ltx_title ltx_title_document">VeruSteer: Learning What to Repair Next in Verus</h1>
+<span class="ltx_pubnotes ltx_pubnotes_meta"><span class="ltx_pubnotes_content"><span class="ltx_pubnote ltx_role_journal"><span class="ltx_note_name">Journal: </span>PACMPL</span><span class="ltx_pubnote ltx_role_volume"><span class="ltx_note_name">Volume: </span>11</span><span class="ltx_pubnote ltx_role_number">OOPSLA1</span><span class="ltx_pubnote ltx_role_article">1</span><span class="ltx_pubnote ltx_role_publicationmonth">4</span><span class="ltx_pubnote ltx_role_ccs"><span class="ltx_note_name">CCS: </span>Software and its engineering Software verification and validation</span><span class="ltx_pubnote ltx_role_ccs"><span class="ltx_note_name">CCS: </span>Software and its engineering Formal software verification</span><span class="ltx_pubnote ltx_role_ccs"><span class="ltx_note_name">CCS: </span>Computing methodologies Machine learning</span></span></span>
+<div class="ltx_authors">
+<span class="ltx_creator ltx_role_author"><span class="ltx_annotated_personname">
+<span class="ltx_personname">Chao Jiang
+</span>
+<span class="ltx_contact ltx_role_orcid"><a class="ltx_ref ltx_orcid" href="https://orcid.org/0009-0008-3173-5196" title="ORCID 0009-0008-3173-5196"><svg class="ltx_orcidlogo" height="1em" version="1.1" viewbox="0 0 72 72" width="1em"></svg></a>
+</span></span><span class="ltx_author_notes"><span class="ltx_author_notes_content">
+<span class="ltx_contact ltx_role_affiliation"><span class="ltx_contact_name">Affiliation: </span><span class="ltx_text ltx_affiliation_institution" id="id1">Shenzhen University</span>, <span class="ltx_text ltx_affiliation_department" id="id2">College of Computer Science and Software Engineering</span>, <span class="ltx_text ltx_affiliation_city" id="id3">Shenzhen</span>, <span class="ltx_text ltx_affiliation_country" id="id4">China</span>
+</span>
+<span class="ltx_contact ltx_role_email"><span class="ltx_contact_name">email: </span><a href="mailto:chaoccc22@gmail.com">chaoccc22@gmail.com</a>
+</span></span></span></span>
+<span class="ltx_author_before">, </span><span class="ltx_creator ltx_role_author"><span class="ltx_annotated_personname">
+<span class="ltx_personname">Ding Wang
+</span>
+<span class="ltx_contact ltx_role_orcid"><a class="ltx_ref ltx_orcid" href="https://orcid.org/0009-0008-2582-5224" title="ORCID 0009-0008-2582-5224"><svg class="ltx_orcidlogo" height="1em" version="1.1" viewbox="0 0 72 72" width="1em"></svg></a>
+</span></span><span class="ltx_author_notes"><span class="ltx_author_notes_content">
+<span class="ltx_contact ltx_role_affiliation"><span class="ltx_contact_name">Affiliation: </span><span class="ltx_text ltx_affiliation_institution" id="id5">Shenzhen University</span>, <span class="ltx_text ltx_affiliation_department" id="id6">College of Computer Science and Software Engineering</span>, <span class="ltx_text ltx_affiliation_city" id="id7">Shenzhen</span>, <span class="ltx_text ltx_affiliation_country" id="id8">China</span>
+</span>
+<span class="ltx_contact ltx_role_email"><span class="ltx_contact_name">email: </span><a href="mailto:lifetruthuuu@gmail.com">lifetruthuuu@gmail.com</a>
+</span></span></span></span>
+<span class="ltx_author_before">, </span><span class="ltx_creator ltx_role_author"><span class="ltx_annotated_personname">
+<span class="ltx_personname">Chaohua Yang
+</span>
+<span class="ltx_contact ltx_role_orcid"><a class="ltx_ref ltx_orcid" href="https://orcid.org/0009-0006-8555-2841" title="ORCID 0009-0006-8555-2841"><svg class="ltx_orcidlogo" height="1em" version="1.1" viewbox="0 0 72 72" width="1em"></svg></a>
+</span></span><span class="ltx_author_notes"><span class="ltx_author_notes_content">
+<span class="ltx_contact ltx_role_affiliation"><span class="ltx_contact_name">Affiliation: </span><span class="ltx_text ltx_affiliation_institution" id="id9">Shenzhen University</span>, <span class="ltx_text ltx_affiliation_department" id="id10">College of Computer Science and Software Engineering</span>, <span class="ltx_text ltx_affiliation_city" id="id11">Shenzhen</span>, <span class="ltx_text ltx_affiliation_country" id="id12">China</span>
+</span>
+<span class="ltx_contact ltx_role_email"><span class="ltx_contact_name">email: </span><a href="mailto:chaohua.ych@gmail.com">chaohua.ych@gmail.com</a>
+</span></span></span></span>
+<span class="ltx_author_before">, </span><span class="ltx_creator ltx_role_author"><span class="ltx_annotated_personname">
+<span class="ltx_personname">Dugang Liu
+</span>
+<span class="ltx_contact ltx_role_orcid"><a class="ltx_ref ltx_orcid" href="https://orcid.org/0000-0003-3612-709X" title="ORCID 0000-0003-3612-709X"><svg class="ltx_orcidlogo" height="1em" version="1.1" viewbox="0 0 72 72" width="1em"></svg></a>
+</span></span><span class="ltx_author_notes"><span class="ltx_author_notes_content">
+<span class="ltx_contact ltx_role_affiliation"><span class="ltx_contact_name">Affiliation: </span><span class="ltx_text ltx_affiliation_institution" id="id13">Shenzhen University</span>, <span class="ltx_text ltx_affiliation_department" id="id14">College of Computer Science and Software Engineering</span>, <span class="ltx_text ltx_affiliation_city" id="id15">Shenzhen</span>, <span class="ltx_text ltx_affiliation_country" id="id16">China</span>
+</span>
+<span class="ltx_contact ltx_role_email"><span class="ltx_contact_name">email: </span><a href="mailto:dugang.ldg@gmail.com">dugang.ldg@gmail.com</a>
+</span></span></span></span>
+<span class="ltx_author_before">, </span><span class="ltx_creator ltx_role_author"><span class="ltx_annotated_personname">
+<span class="ltx_personname">Zhiwu Xu
+</span>
+<span class="ltx_contact ltx_role_orcid"><a class="ltx_ref ltx_orcid" href="https://orcid.org/0000-0001-6727-440X" title="ORCID 0000-0001-6727-440X"><svg class="ltx_orcidlogo" height="1em" version="1.1" viewbox="0 0 72 72" width="1em"></svg></a>
+</span></span><span class="ltx_author_notes"><span class="ltx_author_notes_content">
+<span class="ltx_contact ltx_role_affiliation"><span class="ltx_contact_name">Affiliation: </span><span class="ltx_text ltx_affiliation_institution" id="id17">Shenzhen University</span>, <span class="ltx_text ltx_affiliation_department" id="id18">College of Computer Science and Software Engineering</span>, <span class="ltx_text ltx_affiliation_city" id="id19">Shenzhen</span>, <span class="ltx_text ltx_affiliation_country" id="id20">China</span>
+</span>
+<span class="ltx_contact ltx_role_email"><span class="ltx_contact_name">email: </span><a href="mailto:xuzhiwu@szu.edu.cn">xuzhiwu@szu.edu.cn</a>
+</span></span></span></span>
+<span class="ltx_author_before">, </span><span class="ltx_creator ltx_role_author"><span class="ltx_annotated_personname">
+<span class="ltx_personname">Cheng Wen
+</span>
+<span class="ltx_contact ltx_role_orcid"><a class="ltx_ref ltx_orcid" href="https://orcid.org/0000-0003-1826-6213" title="ORCID 0000-0003-1826-6213"><svg class="ltx_orcidlogo" height="1em" version="1.1" viewbox="0 0 72 72" width="1em"></svg></a>
+</span></span><span class="ltx_author_notes"><span class="ltx_author_notes_content">
+<span class="ltx_contact ltx_role_affiliation"><span class="ltx_contact_name">Affiliation: </span><span class="ltx_text ltx_affiliation_institution" id="id21">Shenzhen University</span>, <span class="ltx_text ltx_affiliation_department" id="id22">College of Computer Science and Software Engineering</span>, <span class="ltx_text ltx_affiliation_city" id="id23">Shenzhen</span>, <span class="ltx_text ltx_affiliation_country" id="id24">China</span>
+</span>
+<span class="ltx_contact ltx_role_email"><span class="ltx_contact_name">email: </span><a href="mailto:wencheng@xidian.edu.cn">wencheng@xidian.edu.cn</a>
+</span></span></span></span>
+<span class="ltx_author_before">, </span><span class="ltx_creator ltx_role_author"><span class="ltx_annotated_personname">
+<span class="ltx_personname">Zhong Ming
+</span>
+<span class="ltx_contact ltx_role_orcid"><a class="ltx_ref ltx_orcid" href="https://orcid.org/0000-0001-9310-3460" title="ORCID 0000-0001-9310-3460"><svg class="ltx_orcidlogo" height="1em" version="1.1" viewbox="0 0 72 72" width="1em"></svg></a>
+</span></span><span class="ltx_author_notes"><span class="ltx_author_notes_content">
+<span class="ltx_contact ltx_role_affiliation"><span class="ltx_contact_name">Affiliation: </span><span class="ltx_text ltx_affiliation_institution" id="id25">Shenzhen University</span>, <span class="ltx_text ltx_affiliation_department" id="id26">College of Computer Science and Software Engineering</span>, <span class="ltx_text ltx_affiliation_city" id="id27">Shenzhen</span>, <span class="ltx_text ltx_affiliation_country" id="id28">China</span>
+</span>
+<span class="ltx_contact ltx_role_email"><span class="ltx_contact_name">email: </span><a href="mailto:mingz@szu.edu.cn">mingz@szu.edu.cn</a>
+</span></span></span></span>
+<span class="ltx_author_before">, </span><span class="ltx_creator ltx_role_author"><span class="ltx_annotated_personname">
+<span class="ltx_personname">Yuwei Liu
+</span>
+<span class="ltx_contact ltx_role_orcid"><a class="ltx_ref ltx_orcid" href="https://orcid.org/0000-0001-5170-3388" title="ORCID 0000-0001-5170-3388"><svg class="ltx_orcidlogo" height="1em" version="1.1" viewbox="0 0 72 72" width="1em"></svg></a>
+</span></span><span class="ltx_author_notes"><span class="ltx_author_notes_content">
+<span class="ltx_contact ltx_role_affiliation"><span class="ltx_contact_name">Affiliation: </span><span class="ltx_text ltx_affiliation_institution" id="id29">Ant Group</span>, <span class="ltx_text ltx_affiliation_department" id="id30">Ant Research</span>, <span class="ltx_text ltx_affiliation_city" id="id31">Hangzhou</span>, <span class="ltx_text ltx_affiliation_country" id="id32">China</span>
+</span>
+<span class="ltx_contact ltx_role_email"><span class="ltx_contact_name">email: </span><a href="mailto:lyw458372@antgroup.com">lyw458372@antgroup.com</a>
+</span></span></span></span>
+<span class="ltx_author_before">, </span><span class="ltx_creator ltx_role_author"><span class="ltx_annotated_personname">
+<span class="ltx_personname">Xinyi Wan
+</span>
+<span class="ltx_contact ltx_role_orcid"><a class="ltx_ref ltx_orcid" href="https://orcid.org/0009-0004-3543-499X" title="ORCID 0009-0004-3543-499X"><svg class="ltx_orcidlogo" height="1em" version="1.1" viewbox="0 0 72 72" width="1em"></svg></a>
+</span></span><span class="ltx_author_notes"><span class="ltx_author_notes_content">
+<span class="ltx_contact ltx_role_affiliation"><span class="ltx_contact_name">Affiliation: </span><span class="ltx_text ltx_affiliation_institution" id="id33">Ant Group</span>, <span class="ltx_text ltx_affiliation_department" id="id34">Ant Research</span>, <span class="ltx_text ltx_affiliation_city" id="id35">Hangzhou</span>, <span class="ltx_text ltx_affiliation_country" id="id36">China</span>
+</span>
+<span class="ltx_contact ltx_role_email"><span class="ltx_contact_name">email: </span><a href="mailto:wanxinyi.wxy@antgroup.com">wanxinyi.wxy@antgroup.com</a>
+</span></span></span></span>
+<span class="ltx_author_before"> and </span><span class="ltx_creator ltx_role_author"><span class="ltx_annotated_personname">
+<span class="ltx_personname">Lin Huang
+</span>
+<span class="ltx_contact ltx_role_orcid"><a class="ltx_ref ltx_orcid" href="https://orcid.org/0009-0002-5659-1471" title="ORCID 0009-0002-5659-1471"><svg class="ltx_orcidlogo" height="1em" version="1.1" viewbox="0 0 72 72" width="1em"></svg></a>
+</span></span><span class="ltx_author_notes"><span class="ltx_author_notes_content">
+<span class="ltx_contact ltx_role_affiliation"><span class="ltx_contact_name">Affiliation: </span><span class="ltx_text ltx_affiliation_institution" id="id37">Ant Group</span>, <span class="ltx_text ltx_affiliation_department" id="id38">Ant Research</span>, <span class="ltx_text ltx_affiliation_city" id="id39">Hangzhou</span>, <span class="ltx_text ltx_affiliation_country" id="id40">China</span>
+</span>
+<span class="ltx_contact ltx_role_email"><span class="ltx_contact_name">email: </span><a href="mailto:linyu.hl@antgroup.com">linyu.hl@antgroup.com</a>
+</span></span></span></span></div>
+<div class="ltx_dates">2027</div>
+<div class="ltx_abstract" id="abstract1"><h6 class="ltx_title ltx_title_abstract">Abstract.</h6>
+<p class="ltx_p" id="abstract1.1">LLM-based verification systems repair Rust proofs by revising programs in response to Verus diagnostics. When several error types are reported, pipelines such as AutoVerus and VeruSAGE select the next repair target using a preset priority. Yet each repair changes the program and the errors that foll …</p>
+</div>
+<div class="ltx_keywords">
+<h6 class="ltx_title ltx_title_keywords">Keywords: </h6>Program Verification, Verus, Proof Repair, Specification Synthesis, Large Language Models, Sequential Recommendation
+</div>
+<section class="ltx_section" id="S1">
+<h2 class="ltx_title ltx_title_section"><span class="ltx_tag ltx_tag_section">1. </span>Introduction</h2>
+<div class="ltx_para"><p class="ltx_p">Verus (Lattuada et al., 2023) verifies Rust (Matsakis and Klock, 2014) programs against formal specifications, using proof annotations to help an SMT solver discharge the resulting obligations. A verification attempt may fail because the program has compilation or type errors, or because Verus canno …</p></div>
+</section>
+</article>
+</div>
+</div>
+</body>
+</html>
